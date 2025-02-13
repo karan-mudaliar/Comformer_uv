@@ -1,0 +1,69 @@
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[[tool.uv.index]]
+name = "pyg"
+url = "https://data.pyg.org/whl/torch-2.5.0+cu121.html"
+explicit = true
+
+Then reinstall PyTorch with the new CUDA version:
+bash
+
+Copy
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+Then install PyG packages:
+bash
+
+Copy
+uv pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.5.0+cu121.html --no-build-isolation
+This should resolve the CUDA driver version issue. Keep in mind you'll need to have CUDA 12.1 drivers installed on your system. You can get them from NVIDIA's website.
+ Copy
+Retry
+###NEWER
+
+uv pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.0.1+cu117.html
+
+[[project]
+name = "comformer-uv"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "numpy>=1.19.5",
+    "scipy>=1.6.1",
+    "jarvis-tools>=2021.07.19",
+    "torch==2.0.1",
+    "torchvision",
+    "torchaudio",
+    "scikit-learn>=0.22.2",
+    "matplotlib>=3.4.1",
+    "tqdm>=4.60.0",
+    "pandas>=1.2.3",
+    "pytorch-ignite>=0.4.7",
+    "pydantic>=1.8.1,<2",
+    "pyparsing>=2.2.1,<3",
+    "pandarallel>=1.6.5",
+    "torch-geometric",
+    "e3nn>=0.5.4",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu117"
+url = "https://download.pytorch.org/whl/cu117"
+explicit = true
+
+[[tool.uv.index]]
+name = "pyg"
+url = "https://data.pyg.org/whl/torch-2.0.1+cu117.html"
+explicit = true
+
+[project.optional-dependencies]
+dev = [
+    "flake8>=3.9.1",
+    "pycodestyle>=2.7.0",
+    "pydocstyle>=6.0.0",
+]
