@@ -24,12 +24,6 @@ dependencies = [
     "pyarrow>=19.0.0",
     "ipykernel>=6.29.5",
     "structlog>=25.1.0",
-    # Add PyTorch with CUDA 12.1 support
-    # uv pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.5.1+cu121.html
-    "torch==2.5.1",
-    "torchvision==0.20.1",
-    "torchaudio==2.5.1",
-    "torch-geometric>=2.6.1",
 ]
 
 [project.optional-dependencies]
