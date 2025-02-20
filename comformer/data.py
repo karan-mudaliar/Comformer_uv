@@ -4,15 +4,12 @@ import imp
 import random
 from pathlib import Path
 from typing import Optional
-
 # from typing import Dict, List, Optional, Set, Tuple
-
 import os
 import torch
 import ast
 import numpy as np
-# import pandas as pd
-import fireducks.pandas as pd
+import pandas as pd
 from jarvis.core.atoms import Atoms,  pmg_to_atoms
 import structlog
 from pymatgen.core import Structure
@@ -60,7 +57,7 @@ logger = structlog.get_logger()
 
 def load_dataset(  ### Modified to use D2R2 data set
     name: str = "D2R2_surface_data", 
-    data_path: str = "/home/mudaliar.k/github/comformer_uv/data/surface_database_for_GNN.csv",
+    data_path: str = "/home/mudaliar.k/github/comformer_uv/data/surface_prop_data_set_top_bottom.csv",
     target=None,
     limit: Optional[int] = 1000,
     classification_threshold: Optional[float] = None,
@@ -70,7 +67,18 @@ def load_dataset(  ### Modified to use D2R2 data set
     df = pd.read_csv(data_path, on_bad_lines="skip")
     if limit is not None:
         df = df[:limit]
-    df["jid"] = df["mpid"].astype(str) +  df["miller_index"].astype(str) +  df["term"].astype(str)
+    df["jid"] = df["mpid"].astype(str) +  df["miller"].astype(str) +  df["term"].astype(str)
+    
+    # Add combined target for multi-property prediction
+    df["all"] = df.apply(
+        lambda x: [
+            x["WF_bottom"],
+            x["WF_top"],
+            x["cleavage_energy"]
+        ],
+        axis=1
+    )
+    
     if "slab" in df.columns:
         df = df.rename(columns={"slab": "atoms"})
     logger.info(f"There are {len(df)} rows in this df")
@@ -164,7 +172,7 @@ def load_pyg_graphs(
         )
     logger.info("Applying transform to our code")
     graphs = df["atoms"].apply(atoms_to_graph).values 
-    # graphs = df["atoms"].apply(atoms_to_graph).values
+    # graphs = df["atoms"].paral_apply(atoms_to_graph).values
 
     return graphs
 
@@ -241,10 +249,15 @@ def get_pyg_dataset(
 ):
     """Get pyg Dataset."""
     df = pd.DataFrame(dataset)
-    vals = df[target].values
-    if target == "shear modulus" or target == "bulk modulus":
-        val_list = [vals[i].item() for i in range(len(vals))]
-        vals = val_list
+    
+    # Modify to handle multi-output case
+    if target == "all":
+        vals = np.array([x for x in df[target].values])
+        output_features = 3  # Number of properties we're predicting
+    else:
+        vals = df[target].values
+        output_features = 1
+    
     output_dir = "./saved_data/" + tmp_name + "test_graph_angle.pkl" # for fast test use
     print("data range", np.max(vals), np.min(vals))
     print(output_dir)

@@ -11,3 +11,4 @@ uv.lock
 comformer/scripts/sample_train.data
 comformer/scripts/yourdir/
 data/
+output/

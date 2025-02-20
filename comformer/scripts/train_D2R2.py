@@ -14,4 +14,17 @@ props = [
     "cleavage_energy",
 ]
 
-train_prop_model(learning_rate=0.001, name="iComformer", prop=props[0], pyg_input=True, n_epochs=500, max_neighbors=25, cutoff=4.0, batch_size=64, use_lattice=True, output_dir="yourdir", use_angle=False, save_dataloader=True)
+train_prop_model(
+    learning_rate=0.001, 
+    name="iComformer", 
+    prop="all",
+    pyg_input=True, 
+    n_epochs=500, 
+    max_neighbors=25, 
+    cutoff=4.0, 
+    batch_size=64, 
+    use_lattice=True, 
+    output_dir="output/D2R2_top_bottom", 
+    use_angle=True, 
+    save_dataloader=True
+)
