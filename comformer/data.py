@@ -55,32 +55,32 @@ logger = structlog.get_logger()
 #     d = pd.DataFrame(d)
 #     return d
 
-def load_dataset(  ### Modified to use D2R2 data set
+def load_dataset(
     name: str = "D2R2_surface_data", 
-    data_path: str = "/home/mudaliar.k/github/comformer_uv/data/surface_prop_data_set_top_bottom.csv",
+    data_path: str = "data/surface_prop_data_set_top_bottom.csv",
     target=None,
     limit: Optional[int] = 1000,
     classification_threshold: Optional[float] = None,
 ):
-    """Load jarvis data."""
     logger.info(f"reading data from path {data_path}")
     df = pd.read_csv(data_path, on_bad_lines="skip")
     if limit is not None:
         df = df[:limit]
-    df["jid"] = df["mpid"].astype(str) +  df["miller"].astype(str) +  df["term"].astype(str)
+
+    df["jid"] = df["mpid"].astype(str) + df["miller"].astype(str) + df["term"].astype(str)
     
-    # Add combined target for multi-property prediction
-    df["all"] = df.apply(
-        lambda x: [
-            x["WF_bottom"],
-            x["WF_top"],
-            x["cleavage_energy"]
-        ],
-        axis=1
-    )
+    # For multi-property training: if target=="all" and dataset is D2R2_surface_data,
+    # combine WF_bottom, WF_top, and cleavage_energy into one list.
+    if target == "all":
+        logger.info("Combining WF_bottom, WF_top, and cleavage_energy into 'all' field for D2R2_surface_data")
+        df["all"] = df.apply(
+            lambda x: [x["WF_bottom"], x["WF_top"], x["cleavage_energy"]],
+            axis=1
+        )
     
     if "slab" in df.columns:
         df = df.rename(columns={"slab": "atoms"})
+    
     logger.info(f"There are {len(df)} rows in this df")
     return df
 
