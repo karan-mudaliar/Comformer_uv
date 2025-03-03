@@ -15,3 +15,6 @@ output/
 sample_test.data
 .gitignore
 sample_val.data
+error_97173.txt
+output_97173.txt
+sample_train.data
