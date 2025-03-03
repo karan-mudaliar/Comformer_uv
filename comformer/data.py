@@ -1,6 +1,6 @@
 """Implementation based on the template of ALIGNN."""
 
-import imp
+# import imp
 import random
 from pathlib import Path
 from typing import Optional
@@ -59,7 +59,7 @@ def load_dataset(
     name: str = "D2R2_surface_data", 
     data_path: str = "data/surface_prop_data_set_top_bottom.csv",
     target=None,
-    limit: Optional[int] = 1000,
+    limit: Optional[int] = 200,
     classification_threshold: Optional[float] = None,
 ):
     logger.info(f"reading data from path {data_path}")
