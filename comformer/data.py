@@ -1,6 +1,6 @@
 """Implementation based on the template of ALIGNN."""
 
-# import imp
+import imp
 import random
 from pathlib import Path
 from typing import Optional
@@ -26,38 +26,11 @@ from sklearn.preprocessing import StandardScaler
 # use pandas progress_apply
 tqdm.pandas()
 logger = structlog.get_logger()
-# def load_dataset(
-#     name: str = "dft_3d",
-#     target=None,
-#     limit: Optional[int] = 100,
-#     classification_threshold: Optional[float] = None,
-# ):
-#     """Load jarvis data."""
-#     d = jdata(name)
-#     data = []
-#     for i in d:
-#         if i[target] != "na" and not math.isnan(i[target]):
-#             if classification_threshold is not None:
-#                 if i[target] <= classification_threshold:
-#                     i[target] = 0
-#                 elif i[target] > classification_threshold:
-#                     i[target] = 1
-#                 else:
-#                     raise ValueError(
-#                         "Check classification data type.",
-#                         i[target],
-#                         type(i[target]),
-#                     )
-#             data.append(i)
-#     d = data
-#     if limit is not None:
-#         d = d[:limit]
-#     d = pd.DataFrame(d)
-#     return d
+
 
 def load_dataset(
     name: str = "D2R2_surface_data", 
-    data_path: str = "data/surface_prop_data_set_top_bottom.csv",
+    data_path: str = "data/DFT_data.csv",
     target=None,
     limit: Optional[int] = None,
     classification_threshold: Optional[float] = None,
