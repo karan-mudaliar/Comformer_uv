@@ -26,7 +26,7 @@ eval "$(conda shell.bash hook)"
 conda activate comformer
 
 cd /home/mudaliar.k/github/comformer_uv
-git checkout D2R2-compatibility
+# git checkout D2R2-compatibility
 # More debug information
 echo "PYTHONPATH: $PYTHONPATH"
 echo "Conda environment: $CONDA_DEFAULT_ENV"
