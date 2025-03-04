@@ -155,32 +155,52 @@ def train_main(
     if passed as a dict with matching keys, pydantic validation is used
     """
     print(config)
+    import os
+    
+    # Ensure config is properly set up
     if type(config) is dict:
         try:
             config = TrainingConfig(**config)
         except Exception as exp:
             print("Check", exp)
             print('error in converting to training config!')
-    import os
-    
-    if not os.path.exists(config.output_dir):
-        os.makedirs(config.output_dir)
-    checkpoint_dir = os.path.join(config.output_dir)
+            # Fall back to using dict directly if conversion fails
+            output_dir = config.get('output_dir', '.')
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            config['output_dir'] = output_dir
+    else:
+        if not os.path.exists(config.output_dir):
+            os.makedirs(config.output_dir)
+    # Get the output directory from config (either dict or object)
+    output_dir = config.output_dir if hasattr(config, 'output_dir') else config.get('output_dir', '.')
+    checkpoint_dir = os.path.join(output_dir)
     deterministic = False
     classification = False
     print("config:")
-    tmp = config.dict()
-    f = open(os.path.join(config.output_dir, "config.json"), "w")
+    
+    # Handle both dict and TrainingConfig objects
+    tmp = config.dict() if hasattr(config, 'dict') else config.copy()
+    f = open(os.path.join(output_dir, "config.json"), "w")
     f.write(json.dumps(tmp, indent=4))
     f.close()
     global tmp_output_dir
-    tmp_output_dir = config.output_dir
-    pprint.pprint(tmp) 
-    if config.classification_threshold is not None:
+    tmp_output_dir = output_dir
+    pprint.pprint(tmp)
+    # Handle classification threshold check for both dict and object
+    classification_threshold = (
+        config.classification_threshold 
+        if hasattr(config, 'classification_threshold') 
+        else config.get('classification_threshold')
+    )
+    if classification_threshold is not None:
         classification = True
-    if config.random_seed is not None:
+    
+    # Handle random seed check for both dict and object
+    random_seed = config.random_seed if hasattr(config, 'random_seed') else config.get('random_seed')
+    if random_seed is not None:
         deterministic = True
-        ignite.utils.manual_seed(config.random_seed)
+        ignite.utils.manual_seed(random_seed)
 
     line_graph = True
     if not train_val_test_loaders:
