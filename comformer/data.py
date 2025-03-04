@@ -1,18 +1,15 @@
 """Implementation based on the template of ALIGNN."""
 
-import imp
+# import imp
 import random
 from pathlib import Path
 from typing import Optional
-
 # from typing import Dict, List, Optional, Set, Tuple
-
 import os
 import torch
 import ast
 import numpy as np
-# import pandas as pd
-import fireducks.pandas as pd
+import pandas as pd
 from jarvis.core.atoms import Atoms,  pmg_to_atoms
 import structlog
 from pymatgen.core import Structure
@@ -58,21 +55,33 @@ logger = structlog.get_logger()
 #     d = pd.DataFrame(d)
 #     return d
 
-def load_dataset(  ### Modified to use D2R2 data set
+def load_dataset(
     name: str = "D2R2_surface_data", 
-    data_path: str = "/home/mudaliar.k/github/comformer_uv/data/surface_database_for_GNN.csv",
+    data_path: str = "data/surface_prop_data_set_top_bottom.csv",
     target=None,
-    limit: Optional[int] = 1000,
+    limit: Optional[int] = None,
     classification_threshold: Optional[float] = None,
 ):
-    """Load jarvis data."""
     logger.info(f"reading data from path {data_path}")
+    logger.info(f"limit parameter value: {limit}")
     df = pd.read_csv(data_path, on_bad_lines="skip")
     if limit is not None:
         df = df[:limit]
-    df["jid"] = df["mpid"].astype(str) +  df["miller_index"].astype(str) +  df["term"].astype(str)
+
+    df["jid"] = df["mpid"].astype(str) + df["miller"].astype(str) + df["term"].astype(str)
+    
+    # For multi-property training: if target=="all" and dataset is D2R2_surface_data,
+    # combine WF_bottom, WF_top, and cleavage_energy into one list.
+    if target == "all":
+        logger.info("Combining WF_bottom, WF_top, and cleavage_energy into 'all' field for D2R2_surface_data")
+        df["all"] = df.apply(
+            lambda x: [x["WF_bottom"], x["WF_top"], x["cleavage_energy"]],
+            axis=1
+        )
+    
     if "slab" in df.columns:
         df = df.rename(columns={"slab": "atoms"})
+    
     logger.info(f"There are {len(df)} rows in this df")
     return df
 
@@ -164,13 +173,13 @@ def load_pyg_graphs(
         )
     logger.info("Applying transform to our code")
     graphs = df["atoms"].apply(atoms_to_graph).values 
-    # graphs = df["atoms"].apply(atoms_to_graph).values
+    # graphs = df["atoms"].paral_apply(atoms_to_graph).values
 
     return graphs
 
 
 def get_id_train_val_test(
-    total_size=1000,
+    total_size=None,
     split_seed=123,
     train_ratio=None,
     val_ratio=0.1,
@@ -241,10 +250,15 @@ def get_pyg_dataset(
 ):
     """Get pyg Dataset."""
     df = pd.DataFrame(dataset)
-    vals = df[target].values
-    if target == "shear modulus" or target == "bulk modulus":
-        val_list = [vals[i].item() for i in range(len(vals))]
-        vals = val_list
+    
+    # Modify to handle multi-output case
+    if target == "all":
+        vals = np.array([x for x in df[target].values])
+        output_features = 3  # Number of properties we're predicting
+    else:
+        vals = df[target].values
+        output_features = 1
+    
     output_dir = "./saved_data/" + tmp_name + "test_graph_angle.pkl" # for fast test use
     print("data range", np.max(vals), np.min(vals))
     print(output_dir)

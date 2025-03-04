@@ -11,3 +11,10 @@ uv.lock
 comformer/scripts/sample_train.data
 comformer/scripts/yourdir/
 data/
+output/
+sample_test.data
+.gitignore
+sample_val.data
+error_*
+output_*
+sample_train.data

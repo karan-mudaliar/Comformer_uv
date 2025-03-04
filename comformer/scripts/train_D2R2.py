@@ -14,4 +14,18 @@ props = [
     "cleavage_energy",
 ]
 
-train_prop_model(learning_rate=0.001, name="iComformer", prop=props[0], pyg_input=True, n_epochs=500, max_neighbors=25, cutoff=4.0, batch_size=64, use_lattice=True, output_dir="yourdir", use_angle=False, save_dataloader=True)
+train_prop_model(
+    dataset="D2R2_surface_data",
+    prop="all",           # Use the combined field.
+    name="iComformer",
+    pyg_input=True,
+    n_epochs=1,
+    max_neighbors=25,
+    cutoff=4.0,
+    batch_size=64,
+    use_lattice=True,
+    use_angle=True,
+    save_dataloader=True,
+    output_dir="output/D2R2_multi3",
+    output_features=3     # Critical: final output dimension set to 3.
+)
