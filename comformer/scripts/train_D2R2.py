@@ -23,7 +23,7 @@ train_prop_model(
     prop="all",           # Use the combined field.
     name="iComformer",
     pyg_input=True,
-    n_epochs=1,
+    n_epochs=350,
     max_neighbors=25,
     cutoff=4.0,
     batch_size=64,
