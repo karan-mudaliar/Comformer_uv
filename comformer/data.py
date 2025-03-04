@@ -179,7 +179,7 @@ def load_pyg_graphs(
 
 
 def get_id_train_val_test(
-    total_size=1000,
+    total_size=None,
     split_seed=123,
     train_ratio=None,
     val_ratio=0.1,
