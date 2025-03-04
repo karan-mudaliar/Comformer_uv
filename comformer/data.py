@@ -319,7 +319,23 @@ def get_train_val_loaders(
         )
     else:
         if not dataset_array:
-            d = load_dataset(name=dataset, data_path=data_path).to_dict(orient="records")
+            # First load the dataset
+            df = load_dataset(name=dataset, data_path=data_path)
+            
+            # Make sure the 'all' field is created if target is 'all'
+            if target == "all" and "all" not in df.columns:
+                print("Creating 'all' field from WF_bottom, WF_top, and cleavage_energy columns")
+                required_cols = ["WF_bottom", "WF_top", "cleavage_energy"]
+                if all(col in df.columns for col in required_cols):
+                    df["all"] = df.apply(
+                        lambda x: [x["WF_bottom"], x["WF_top"], x["cleavage_energy"]],
+                        axis=1
+                    )
+                else:
+                    missing = [col for col in required_cols if col not in df.columns]
+                    raise ValueError(f"Cannot create 'all' field. Missing columns: {missing}")
+            
+            d = df.to_dict(orient="records")
         else:
             d = dataset_array
             # for ii, i in enumerate(pc_y):
@@ -361,31 +377,44 @@ def get_train_val_loaders(
             d = tmp
         # logger.info(d)
         for i in d:
+            # If target is 'all' but not present in the data, create it on the fly
+            if target == "all" and target not in i:
+                required_cols = ["WF_bottom", "WF_top", "cleavage_energy"]
+                if all(col in i for col in required_cols):
+                    i[target] = [i["WF_bottom"], i["WF_top"], i["cleavage_energy"]]
+                    print(f"Creating 'all' field on the fly: {i[target]}")
+                else:
+                    missing = [col for col in required_cols if col not in i]
+                    print(f"Warning: Cannot create 'all' field. Missing columns: {missing}. Available: {list(i.keys())}")
+                    continue  # Skip this item
             
-            if isinstance(i[target], list):  # multioutput target
-                all_targets.append(torch.tensor(i[target]))
-                dat.append(i)
-
-            elif (
-                i[target] is not None
-                and i[target] != "na"
-                and not math.isnan(i[target])
-            ):
-                if target_multiplication_factor is not None:
-                    i[target] = i[target] * target_multiplication_factor
-                if classification_threshold is not None:
-                    if i[target] <= classification_threshold:
-                        i[target] = 0
-                    elif i[target] > classification_threshold:
-                        i[target] = 1
-                    else:
-                        raise ValueError(
-                            "Check classification data type.",
-                            i[target],
-                            type(i[target]),
-                        )
-                dat.append(i)
-                all_targets.append(i[target])
+            try:
+                if isinstance(i[target], list):  # multioutput target
+                    all_targets.append(torch.tensor(i[target]))
+                    dat.append(i)
+                elif (
+                    i[target] is not None
+                    and i[target] != "na"
+                    and not math.isnan(i[target])
+                ):
+                    if target_multiplication_factor is not None:
+                        i[target] = i[target] * target_multiplication_factor
+                    if classification_threshold is not None:
+                        if i[target] <= classification_threshold:
+                            i[target] = 0
+                        elif i[target] > classification_threshold:
+                            i[target] = 1
+                        else:
+                            raise ValueError(
+                                "Check classification data type.",
+                                i[target],
+                                type(i[target]),
+                            )
+                    dat.append(i)
+                    all_targets.append(i[target])
+            except KeyError:
+                print(f"Warning: Target '{target}' not found in data. Keys: {list(i.keys())}")
+                continue  # Skip this item
     
     if mp_id_list is not None:
         if mp_id_list == 'bulk':
