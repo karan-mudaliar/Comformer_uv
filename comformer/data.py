@@ -271,6 +271,7 @@ def get_train_val_loaders(
     use_angle=False,
     use_save=True,
     mp_id_list=None,
+    data_path=None,
 ):
     """Help function to set up JARVIS train and val dataloaders."""
     # data loading
@@ -318,7 +319,7 @@ def get_train_val_loaders(
         )
     else:
         if not dataset_array:
-            d = load_dataset().to_dict(orient="records")
+            d = load_dataset(name=dataset, data_path=data_path).to_dict(orient="records")
         else:
             d = dataset_array
             # for ii, i in enumerate(pc_y):

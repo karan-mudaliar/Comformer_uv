@@ -47,6 +47,7 @@ def train_prop_model(
     mp_id_list=None,
     file_name=None,
     atom_features="cgcnn",
+    data_path=None,
 ):
     """Train models for a dataset and a property."""
     if scheduler is None:
@@ -107,6 +108,9 @@ def train_prop_model(
     # config["output_dir"] = '.'
     if output_dir is not None:
         config["output_dir"] = output_dir
+    
+    if data_path is not None:
+        config["data_path"] = data_path
     
     if id_tag is not None:
         config["id_tag"] = id_tag

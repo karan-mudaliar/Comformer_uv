@@ -27,5 +27,6 @@ train_prop_model(
     use_angle=True,
     save_dataloader=True,
     output_dir="output/D2R2_multi3",
-    output_features=3     # Critical: final output dimension set to 3.
+    output_features=3,    # Critical: final output dimension set to 3.
+    data_path="data/DFT_data.csv"  # Add explicit data path
 )

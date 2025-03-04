@@ -226,6 +226,7 @@ def train_main(
             use_angle=config.use_angle,
             use_save=use_save,
             mp_id_list=mp_id_list,
+            data_path=config.data_path if hasattr(config, 'data_path') else None,
         )
     else:
         train_loader = train_val_test_loaders[0]
