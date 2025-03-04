@@ -520,8 +520,8 @@ def train_main(
         with torch.no_grad():
             ids = test_loader.dataset.ids  # [test_loader.dataset.indices]
             for dat, id in zip(test_loader, ids):
-                g, lg, target = dat
-                out_data = net([g.to(device), lg.to(device)])
+                g, lg, _, target = dat
+                out_data = net([g.to(device), lg.to(device), _.to(device)])
                 # out_data = torch.exp(out_data.cpu())
                 top_p, top_class = torch.topk(torch.exp(out_data), k=1)
                 target = int(target.cpu().numpy().flatten().tolist()[0])
@@ -551,8 +551,8 @@ def train_main(
         with torch.no_grad():
             ids = test_loader.dataset.ids  # [test_loader.dataset.indices]
             for dat, id in zip(test_loader, ids):
-                g, lg, target = dat
-                out_data = net([g.to(device), lg.to(device)])
+                g, lg, _, target = dat
+                out_data = net([g.to(device), lg.to(device), _.to(device)])
                 out_data = out_data.cpu().numpy().tolist()
                 if config.standard_scalar_and_pca:
                     sc = pk.load(open("sc.pkl", "rb"))

@@ -59,10 +59,11 @@ def load_dataset(
     name: str = "D2R2_surface_data", 
     data_path: str = "data/surface_prop_data_set_top_bottom.csv",
     target=None,
-    limit: Optional[int] = 200,
+    limit: Optional[int] = None,
     classification_threshold: Optional[float] = None,
 ):
     logger.info(f"reading data from path {data_path}")
+    logger.info(f"limit parameter value: {limit}")
     df = pd.read_csv(data_path, on_bad_lines="skip")
     if limit is not None:
         df = df[:limit]
@@ -178,7 +179,7 @@ def load_pyg_graphs(
 
 
 def get_id_train_val_test(
-    total_size=1000,
+    total_size=None,
     split_seed=123,
     train_ratio=None,
     val_ratio=0.1,
