@@ -14,15 +14,9 @@ props = [
     "cleavage_energy",
 ]
 
-# Create output directory first
+# Create output directory first - simple fix to avoid directory not found error
 output_dir = "output/D2R2_multi3"
 os.makedirs(output_dir, exist_ok=True)
-
-# Explicitly set model config to use output_features=3
-model_config = {
-    "name": "iComformer",
-    "output_features": 3  # Critical: final output dimension set to 3 for multi-property prediction
-}
 
 train_prop_model(
     dataset="D2R2_surface_data",
@@ -37,6 +31,6 @@ train_prop_model(
     use_angle=True,
     save_dataloader=True,
     output_dir=output_dir,
-    model=model_config,   # Pass explicit model config
+    output_features=3,    # Critical: final output dimension set to 3.
     data_path="data/DFT_data.csv"  # Add explicit data path
 )
