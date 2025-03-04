@@ -165,15 +165,27 @@ def train_main(
             print("Check", exp)
             print('error in converting to training config!')
             # Fall back to using dict directly if conversion fails
-            output_dir = config.get('output_dir', '.')
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-            config['output_dir'] = output_dir
-    else:
-        if not os.path.exists(config.output_dir):
-            os.makedirs(config.output_dir)
+    
     # Get the output directory from config (either dict or object)
     output_dir = config.output_dir if hasattr(config, 'output_dir') else config.get('output_dir', '.')
+    
+    # Make sure the output directory exists (create all parent directories)
+    if not os.path.exists(output_dir):
+        print(f"Creating output directory: {output_dir}")
+        try:
+            # Using exist_ok to handle race conditions
+            os.makedirs(output_dir, exist_ok=True)
+        except Exception as e:
+            print(f"Error creating directory {output_dir}: {str(e)}")
+            # Fall back to a safe directory if we can't create the requested one
+            output_dir = os.path.join(os.getcwd(), "output")
+            os.makedirs(output_dir, exist_ok=True)
+            print(f"Using fallback output directory: {output_dir}")
+        
+    # Update config with output_dir if it's a dict
+    if isinstance(config, dict):
+        config['output_dir'] = output_dir
+        
     checkpoint_dir = os.path.join(output_dir)
     deterministic = False
     classification = False
