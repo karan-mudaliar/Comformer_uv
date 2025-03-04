@@ -32,7 +32,7 @@ def load_dataset(
     name: str = "D2R2_surface_data", 
     data_path: str = "data/DFT_data.csv",
     target=None,
-    limit: Optional[int] = None,
+    limit: Optional[int] = 1000,
     classification_threshold: Optional[float] = None,
 ):
     logger.info(f"reading data from path {data_path}")
