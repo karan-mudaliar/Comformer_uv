@@ -63,48 +63,6 @@ def mean_absolute_deviation(data, axis=None):
     """Get Mean absolute deviation."""
     return np.mean(np.absolute(data - np.mean(data, axis)), axis)
 
-# def load_pyg_graphs(
-#     df: pd.DataFrame,
-#     name: str = "dft_3d",
-#     neighbor_strategy: str = "k-nearest",
-#     cutoff: float = 8,
-#     max_neighbors: int = 12,
-#     cachedir: Optional[Path] = None,
-#     use_canonize: bool = False,
-#     use_lattice: bool = False,
-#     use_angle: bool = False,
-# ):
-#     """Construct crystal graphs.
-
-#     Load only atomic number node features
-#     and bond displacement vector edge features.
-
-#     Resulting graphs have scheme e.g.
-#     ```
-#     Graph(num_nodes=12, num_edges=156,
-#           ndata_schemes={'atom_features': Scheme(shape=(1,)}
-#           edata_schemes={'r': Scheme(shape=(3,)})
-#     ```
-#     """
-#     def atoms_to_graph(atoms):
-#         """Convert structure dict to DGLGraph."""
-#         structure = Atoms.from_dict(atoms)
-#         return PygGraph.atom_dgl_multigraph(
-#             structure,
-#             neighbor_strategy=neighbor_strategy,
-#             cutoff=cutoff,
-#             atom_features="atomic_number",
-#             max_neighbors=max_neighbors,
-#             compute_line_graph=False,
-#             use_canonize=use_canonize,
-#             use_lattice=use_lattice,
-#             use_angle=use_angle,
-#         )
-    
-#     graphs = df["atoms"].parallel_apply(atoms_to_graph).values
-#     # graphs = df["atoms"].apply(atoms_to_graph).values
-
-#     return graphs
 
 def load_pyg_graphs(
     df: pd.DataFrame,
