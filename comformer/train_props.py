@@ -50,6 +50,7 @@ def train_prop_model(
     data_path=None,
 ):
     """Train models for a dataset and a property."""
+    print(f"DEBUG: Inside train_prop_model, prop='{prop}')")
     if scheduler is None:
         scheduler = "onecycle"
     if batch_size is None:
@@ -79,6 +80,7 @@ def train_prop_model(
             "name": name,
         },
     }
+    print(f"DEBUG: Config created with target='{config['target']}'")
     if n_early_stopping is not None:
         config["n_early_stopping"] = n_early_stopping
     if cutoff is not None:

@@ -217,6 +217,7 @@ def train_main(
     line_graph = True
     if not train_val_test_loaders:
         # use input standardization for all real-valued feature sets
+                print(f"DEBUG: In train_main, config.target='{config.target}' (type: {type(config.target)})")
         (
             train_loader,
             val_loader,

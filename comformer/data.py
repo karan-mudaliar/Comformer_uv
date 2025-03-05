@@ -35,6 +35,7 @@ def load_dataset(
     limit: Optional[int] = None,
     classification_threshold: Optional[float] = None,
 ):
+    print(f"DEBUG: In load_dataset, target='{target}' (type: {type(target)})")
     logger.info(f"reading data from path {data_path}")
     logger.info(f"limit parameter value: {limit}")
     logger.info(f"The target property is {target}")  # Log target property immediately
@@ -334,7 +335,8 @@ def get_train_val_loaders(
     else:
         if not dataset_array:
             # First load the dataset
-            df = load_dataset(name=dataset, data_path=data_path)
+            print(f"DEBUG: Calling load_dataset with target='{target}'")
+            df = load_dataset(name=dataset, data_path=data_path, target=target)
             
             # Make sure the 'all' field is created if target is 'all'
             if target == "all" and "all" not in df.columns:
