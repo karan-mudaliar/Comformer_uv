@@ -36,7 +36,7 @@ def load_dataset(
     classification_threshold: Optional[float] = None,
 ):
     logger.info(f"reading data from path {data_path}")
-    logger.info(f"limit parametßer value: {limit}")
+    logger.info(f"limit parameter value: {limit}")
     df = pd.read_csv(data_path, on_bad_lines="skip")
     if limit is not None:
         df = df[:limit]
