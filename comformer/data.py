@@ -36,7 +36,7 @@ def load_dataset(
     classification_threshold: Optional[float] = None,
 ):
     logger.info(f"reading data from path {data_path}")
-    logger.info(f"limit parameter value: {limit}")
+    logger.info(f"limit parametßer value: {limit}")
     df = pd.read_csv(data_path, on_bad_lines="skip")
     if limit is not None:
         df = df[:limit]
@@ -51,7 +51,9 @@ def load_dataset(
             lambda x: [x["WF_bottom"], x["WF_top"], x["cleavage_energy"]],
             axis=1
         )
-    
+    else:
+        logger.info(f"The target property is {target}")
+
     if "slab" in df.columns:
         df = df.rename(columns={"slab": "atoms"})
     

@@ -12,32 +12,21 @@
 #SBATCH --mail-user=$mudaliar.k@northeastern.edu  
 #SBATCH --mail-type=ALL                     
 
-# Handle command line arguments
-if [ "$#" -ne 1 ]; then
-    echo "Error: You must provide exactly one property to train"
-    echo "Usage: $0 <property>"
-    echo "Available properties: WF_bottom, WF_top, cleavage_energy"
-    exit 1
-fi
-
-PROPERTY=$1
-
 # Debug information
 echo "Current directory: $PWD"
 echo "Python version and path:"
 which python
 python --version
-echo "Training model for property: $PROPERTY"
 
 module load anaconda3/2024.06
 module load cuda/12.1
 
-# Try this instead of source ~/.bashrc
+# Try this instead of source ~/.bashrcß
 eval "$(conda shell.bash hook)"
 conda activate comformer
 
 cd /home/mudaliar.k/github/comformer_uv
-
+# git checkout D2R2-compatibility
 # More debug information
 echo "PYTHONPATH: $PYTHONPATH"
 echo "Conda environment: $CONDA_DEFAULT_ENV"
@@ -45,4 +34,4 @@ echo "Content of data directory:"
 ls -l data/
 
 # Run with debug output
-python -u comformer/scripts/train_D2R2_single_prop.py "$PROPERTY"
+python -u comformer/scripts/train_D2R2_single.py
