@@ -36,7 +36,9 @@ def load_dataset(
     classification_threshold: Optional[float] = None,
 ):
     logger.info(f"reading data from path {data_path}")
-    logger.info(f"limit parametßer value: {limit}")
+    logger.info(f"limit parameter value: {limit}")
+    logger.info(f"The target property is {target}")  # Log target property immediately
+    
     df = pd.read_csv(data_path, on_bad_lines="skip")
     if limit is not None:
         df = df[:limit]
@@ -51,8 +53,13 @@ def load_dataset(
             lambda x: [x["WF_bottom"], x["WF_top"], x["cleavage_energy"]],
             axis=1
         )
-    else:
-        logger.info(f"The target property is {target}")
+    elif target is not None:
+        # Ensure the target property exists in the dataframe
+        if target in df.columns:
+            logger.info(f"Found target property '{target}' in the dataset with {df[target].count()} non-null values")
+        else:
+            logger.error(f"Target property '{target}' not found in the dataset. Available columns: {list(df.columns)}")
+            raise ValueError(f"Target property '{target}' not found in dataset")
 
     if "slab" in df.columns:
         df = df.rename(columns={"slab": "atoms"})
@@ -276,6 +283,11 @@ def get_train_val_loaders(
     data_path=None,
 ):
     """Help function to set up JARVIS train and val dataloaders."""
+    # Log important parameters
+    logger.info(f"Setting up data loaders for dataset: {dataset}")
+    logger.info(f"Target property: {target}")
+    logger.info(f"Data path: {data_path}")
+    logger.info(f"Output features: {output_features}")
     # data loading
     mean_train=None
     std_train=None
