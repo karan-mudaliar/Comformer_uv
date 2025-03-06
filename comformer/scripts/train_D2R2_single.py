@@ -33,7 +33,7 @@ train_prop_model(
     prop=target_prop,      # Use the specified target property
     name="iComformer",
     pyg_input=True,
-    n_epochs=350,
+    n_epochs=400,
     max_neighbors=25,
     cutoff=4.0,
     batch_size=64,
