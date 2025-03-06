@@ -613,11 +613,13 @@ def train_main(
         net.eval()
         targets = []
         predictions = []
+        ids = []
         import time
         t1 = time.time()
         with torch.no_grad():
             from tqdm import tqdm
-            for dat in tqdm(test_loader):
+            test_ids = test_loader.dataset.ids
+            for dat, id in zip(tqdm(test_loader), test_ids):
                 g, lg, _, target = dat
                 out_data = net([g.to(device), lg.to(device), _.to(device)])
                 out_data = out_data.cpu().numpy().tolist()
@@ -626,8 +628,26 @@ def train_main(
                     target = target[0]
                 targets.append(target)
                 predictions.append(out_data)
+                ids.append(id)
         t2 = time.time()
         f.close()
+
+        # Save predictions to JSON file
+        mem = []
+        for id, target, pred in zip(ids, targets, predictions):
+            info = {}
+            info["id"] = id
+            info["target"] = target
+            info["predictions"] = pred
+            mem.append(info)
+        
+        dumpjson(
+            filename=os.path.join(
+                config.output_dir, "single_prop_predictions.json"
+            ),
+            data=mem,
+        )
+        
         from sklearn.metrics import mean_absolute_error
         targets = np.array(targets) * std_train
         predictions = np.array(predictions) * std_train
