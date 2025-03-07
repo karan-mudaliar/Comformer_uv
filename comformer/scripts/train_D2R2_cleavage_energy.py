@@ -24,7 +24,7 @@ print(f"DEBUG: Target property is set to '{target_prop}'")
 logger.info(f"Training model for property: {target_prop}")
 
 # Create output directory first - simple fix to avoid directory not found error
-output_dir = "output/D2R2_WF_cleavage_energy"
+output_dir = "output/D2R2_cleavage_energy"
 os.makedirs(output_dir, exist_ok=True)
 
 print(f"DEBUG: Calling train_prop_model with prop='{target_prop}'")
