@@ -34,4 +34,4 @@ echo "Content of data directory:"
 ls -l data/
 
 # Run with debug output
-python -u comformer/scripts/train_D2R2_cleave_energy.py
+python -u comformer/scripts/train_D2R2_cleavage_energy.py
