@@ -44,7 +44,14 @@ def load_dataset(
     if limit is not None:
         df = df[:limit]
     logger.info(f"Data is loaded from {data_path}")
-    df["jid"] = df["mpid"].astype(str) + df["miller"].astype(str) + df["term"].astype(str) + df['flipped'].astype(str)
+    
+    # Check if 'flipped' column exists and use it for jid if present
+    if 'flipped' in df.columns:
+        logger.info("Using 'flipped' column in jid construction")
+        df["jid"] = df["mpid"].astype(str) + df["miller"].astype(str) + df["term"].astype(str) + df['flipped'].astype(str)
+    else:
+        logger.info("'flipped' column not found, using original jid construction")
+        df["jid"] = df["mpid"].astype(str) + df["miller"].astype(str) + df["term"].astype(str)
     
     # For multi-property training: if target=="all" and dataset is D2R2_surface_data,
     # combine WF_bottom, WF_top, and cleavage_energy into one list.
