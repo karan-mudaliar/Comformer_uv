@@ -30,7 +30,7 @@ logger = structlog.get_logger()
 
 def load_dataset(
     name: str = "D2R2_surface_data", 
-    data_path: str = "data/DFT_data.csv",
+    data_path: str = "data/DFT_data_augmented.csv",
     target=None,
     limit: Optional[int] = None,
     classification_threshold: Optional[float] = None,
@@ -43,8 +43,8 @@ def load_dataset(
     df = pd.read_csv(data_path, on_bad_lines="skip")
     if limit is not None:
         df = df[:limit]
-
-    df["jid"] = df["mpid"].astype(str) + df["miller"].astype(str) + df["term"].astype(str)
+    logger.info(f"Data is loaded from {data_path}")
+    df["jid"] = df["mpid"].astype(str) + df["miller"].astype(str) + df["term"].astype(str) + df['flipped'].astype(str)
     
     # For multi-property training: if target=="all" and dataset is D2R2_surface_data,
     # combine WF_bottom, WF_top, and cleavage_energy into one list.
