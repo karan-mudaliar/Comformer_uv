@@ -19,24 +19,13 @@ props = [
     "cleavage_energy",
 ]
 
-target_prop = props[0]  # Use WF_bottom as the target property
+target_prop = props[2]  # Use WF_bottom as the target property
 print(f"DEBUG: Target property is set to '{target_prop}'")
 logger.info(f"Training model for property: {target_prop}")
 
-# Include date and time as a unique identifier in the output directory name
-from datetime import datetime
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-output_dir = f"output/D2R2_WF_bottom_augmented_{timestamp}"
+# Create output directory first - simple fix to avoid directory not found error
+output_dir = "output/D2R2_cleavage_energy_SE3"
 os.makedirs(output_dir, exist_ok=True)
-
-# Also copy the data file to the output directory for reference
-data_path = "data/DFT_data.csv"  # The data file we'll be using
-import shutil
-try:
-    shutil.copy2(data_path, os.path.join(output_dir, os.path.basename(data_path)))
-    logger.info(f"Copied {data_path} to {output_dir}")
-except Exception as e:
-    logger.error(f"Failed to copy data file: {e}")
 
 print(f"DEBUG: Calling train_prop_model with prop='{target_prop}'")
 train_prop_model(
@@ -53,5 +42,5 @@ train_prop_model(
     save_dataloader=True,
     output_dir=output_dir,
     output_features=1,    # Output dimension set to 1 for single property
-    data_path=data_path   # Using the augmented dataset defined above
+    data_path="data/DFT_data.csv"  # Add explicit data path
 )

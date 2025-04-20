@@ -39,7 +39,8 @@ conda activate comformer
 conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia # or higher version if you want
 conda install pyg -c pyg
 pip install jarvis-tools==2022.9.16
-python setup.py
+pip install -e .
+
 ```
 
 ## Training
