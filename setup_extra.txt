@@ -25,7 +25,7 @@ Retry
 
 #####IMPORTANT -> add python git and notebook
 
-uv pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.0.1+cu117.html
+uv pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.5.1+cu121.html
 
 [[project]
 name = "comformer-uv"
