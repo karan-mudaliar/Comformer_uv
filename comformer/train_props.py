@@ -47,8 +47,10 @@ def train_prop_model(
     mp_id_list=None,
     file_name=None,
     atom_features="cgcnn",
+    data_path=None,
 ):
     """Train models for a dataset and a property."""
+    print(f"DEBUG: Inside train_prop_model, prop='{prop}')")
     if scheduler is None:
         scheduler = "onecycle"
     if batch_size is None:
@@ -78,6 +80,7 @@ def train_prop_model(
             "name": name,
         },
     }
+    print(f"DEBUG: Config created with target='{config['target']}'")
     if n_early_stopping is not None:
         config["n_early_stopping"] = n_early_stopping
     if cutoff is not None:
@@ -107,6 +110,9 @@ def train_prop_model(
     # config["output_dir"] = '.'
     if output_dir is not None:
         config["output_dir"] = output_dir
+    
+    if data_path is not None:
+        config["data_path"] = data_path
     
     if id_tag is not None:
         config["id_tag"] = id_tag

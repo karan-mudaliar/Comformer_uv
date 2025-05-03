@@ -18,3 +18,4 @@ sample_val.data
 error_*
 output_*
 sample_train.data
+.DS_Store

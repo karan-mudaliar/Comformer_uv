@@ -21,7 +21,7 @@ python --version
 module load anaconda3/2024.06
 module load cuda/12.1
 
-# Try this instead of source ~/.bashrc
+# Try this instead of source ~/.bashrcß
 eval "$(conda shell.bash hook)"
 conda activate comformer
 
@@ -34,4 +34,4 @@ echo "Content of data directory:"
 ls -l data/
 
 # Run with debug output
-python -u comformer/scripts/train_D2R2.py
+python -u comformer/scripts/train_D2R2_WF_BOTTOM.py

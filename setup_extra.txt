@@ -23,7 +23,9 @@ This should resolve the CUDA driver version issue. Keep in mind you'll need to h
 Retry
 ###NEWER
 
-uv pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.0.1+cu117.html
+#####IMPORTANT -> add python git and notebook
+
+uv pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.5.1+cu121.html
 
 [[project]
 name = "comformer-uv"

@@ -1,6 +1,6 @@
 """Implementation based on the template of ALIGNN."""
 
-# import imp
+import imp
 import random
 from pathlib import Path
 from typing import Optional
@@ -26,49 +26,32 @@ from sklearn.preprocessing import StandardScaler
 # use pandas progress_apply
 tqdm.pandas()
 logger = structlog.get_logger()
-# def load_dataset(
-#     name: str = "dft_3d",
-#     target=None,
-#     limit: Optional[int] = 100,
-#     classification_threshold: Optional[float] = None,
-# ):
-#     """Load jarvis data."""
-#     d = jdata(name)
-#     data = []
-#     for i in d:
-#         if i[target] != "na" and not math.isnan(i[target]):
-#             if classification_threshold is not None:
-#                 if i[target] <= classification_threshold:
-#                     i[target] = 0
-#                 elif i[target] > classification_threshold:
-#                     i[target] = 1
-#                 else:
-#                     raise ValueError(
-#                         "Check classification data type.",
-#                         i[target],
-#                         type(i[target]),
-#                     )
-#             data.append(i)
-#     d = data
-#     if limit is not None:
-#         d = d[:limit]
-#     d = pd.DataFrame(d)
-#     return d
+
 
 def load_dataset(
     name: str = "D2R2_surface_data", 
-    data_path: str = "data/surface_prop_data_set_top_bottom.csv",
+    data_path: str = "data/DFT_data_augmented.csv",
     target=None,
     limit: Optional[int] = None,
     classification_threshold: Optional[float] = None,
 ):
+    print(f"DEBUG: In load_dataset, target='{target}' (type: {type(target)})")
     logger.info(f"reading data from path {data_path}")
     logger.info(f"limit parameter value: {limit}")
+    logger.info(f"The target property is {target}")  # Log target property immediately
+    
     df = pd.read_csv(data_path, on_bad_lines="skip")
     if limit is not None:
         df = df[:limit]
-
-    df["jid"] = df["mpid"].astype(str) + df["miller"].astype(str) + df["term"].astype(str)
+    logger.info(f"Data is loaded from {data_path}")
+    
+    # Check if 'flipped' column exists and use it for jid if present
+    if 'flipped' in df.columns:
+        logger.info("Using 'flipped' column in jid construction")
+        df["jid"] = df["mpid"].astype(str) + df["miller"].astype(str) + df["term"].astype(str) + df['flipped'].astype(str)
+    else:
+        logger.info("'flipped' column not found, using original jid construction")
+        df["jid"] = df["mpid"].astype(str) + df["miller"].astype(str) + df["term"].astype(str)
     
     # For multi-property training: if target=="all" and dataset is D2R2_surface_data,
     # combine WF_bottom, WF_top, and cleavage_energy into one list.
@@ -78,7 +61,14 @@ def load_dataset(
             lambda x: [x["WF_bottom"], x["WF_top"], x["cleavage_energy"]],
             axis=1
         )
-    
+    elif target is not None:
+        # Ensure the target property exists in the dataframe
+        if target in df.columns:
+            logger.info(f"Found target property '{target}' in the dataset with {df[target].count()} non-null values")
+        else:
+            logger.error(f"Target property '{target}' not found in the dataset. Available columns: {list(df.columns)}")
+            raise ValueError(f"Target property '{target}' not found in dataset")
+
     if "slab" in df.columns:
         df = df.rename(columns={"slab": "atoms"})
     
@@ -90,48 +80,6 @@ def mean_absolute_deviation(data, axis=None):
     """Get Mean absolute deviation."""
     return np.mean(np.absolute(data - np.mean(data, axis)), axis)
 
-# def load_pyg_graphs(
-#     df: pd.DataFrame,
-#     name: str = "dft_3d",
-#     neighbor_strategy: str = "k-nearest",
-#     cutoff: float = 8,
-#     max_neighbors: int = 12,
-#     cachedir: Optional[Path] = None,
-#     use_canonize: bool = False,
-#     use_lattice: bool = False,
-#     use_angle: bool = False,
-# ):
-#     """Construct crystal graphs.
-
-#     Load only atomic number node features
-#     and bond displacement vector edge features.
-
-#     Resulting graphs have scheme e.g.
-#     ```
-#     Graph(num_nodes=12, num_edges=156,
-#           ndata_schemes={'atom_features': Scheme(shape=(1,)}
-#           edata_schemes={'r': Scheme(shape=(3,)})
-#     ```
-#     """
-#     def atoms_to_graph(atoms):
-#         """Convert structure dict to DGLGraph."""
-#         structure = Atoms.from_dict(atoms)
-#         return PygGraph.atom_dgl_multigraph(
-#             structure,
-#             neighbor_strategy=neighbor_strategy,
-#             cutoff=cutoff,
-#             atom_features="atomic_number",
-#             max_neighbors=max_neighbors,
-#             compute_line_graph=False,
-#             use_canonize=use_canonize,
-#             use_lattice=use_lattice,
-#             use_angle=use_angle,
-#         )
-    
-#     graphs = df["atoms"].parallel_apply(atoms_to_graph).values
-#     # graphs = df["atoms"].apply(atoms_to_graph).values
-
-#     return graphs
 
 def load_pyg_graphs(
     df: pd.DataFrame,
@@ -340,8 +288,14 @@ def get_train_val_loaders(
     use_angle=False,
     use_save=True,
     mp_id_list=None,
+    data_path=None,
 ):
     """Help function to set up JARVIS train and val dataloaders."""
+    # Log important parameters
+    logger.info(f"Setting up data loaders for dataset: {dataset}")
+    logger.info(f"Target property: {target}")
+    logger.info(f"Data path: {data_path}")
+    logger.info(f"Output features: {output_features}")
     # data loading
     mean_train=None
     std_train=None
@@ -387,7 +341,24 @@ def get_train_val_loaders(
         )
     else:
         if not dataset_array:
-            d = load_dataset().to_dict(orient="records")
+            # First load the dataset
+            print(f"DEBUG: Calling load_dataset with target='{target}'")
+            df = load_dataset(name=dataset, data_path=data_path, target=target)
+            
+            # Make sure the 'all' field is created if target is 'all'
+            if target == "all" and "all" not in df.columns:
+                print("Creating 'all' field from WF_bottom, WF_top, and cleavage_energy columns")
+                required_cols = ["WF_bottom", "WF_top", "cleavage_energy"]
+                if all(col in df.columns for col in required_cols):
+                    df["all"] = df.apply(
+                        lambda x: [x["WF_bottom"], x["WF_top"], x["cleavage_energy"]],
+                        axis=1
+                    )
+                else:
+                    missing = [col for col in required_cols if col not in df.columns]
+                    raise ValueError(f"Cannot create 'all' field. Missing columns: {missing}")
+            
+            d = df.to_dict(orient="records")
         else:
             d = dataset_array
             # for ii, i in enumerate(pc_y):
@@ -429,31 +400,44 @@ def get_train_val_loaders(
             d = tmp
         # logger.info(d)
         for i in d:
+            # If target is 'all' but not present in the data, create it on the fly
+            if target == "all" and target not in i:
+                required_cols = ["WF_bottom", "WF_top", "cleavage_energy"]
+                if all(col in i for col in required_cols):
+                    i[target] = [i["WF_bottom"], i["WF_top"], i["cleavage_energy"]]
+                    print(f"Creating 'all' field on the fly: {i[target]}")
+                else:
+                    missing = [col for col in required_cols if col not in i]
+                    print(f"Warning: Cannot create 'all' field. Missing columns: {missing}. Available: {list(i.keys())}")
+                    continue  # Skip this item
             
-            if isinstance(i[target], list):  # multioutput target
-                all_targets.append(torch.tensor(i[target]))
-                dat.append(i)
-
-            elif (
-                i[target] is not None
-                and i[target] != "na"
-                and not math.isnan(i[target])
-            ):
-                if target_multiplication_factor is not None:
-                    i[target] = i[target] * target_multiplication_factor
-                if classification_threshold is not None:
-                    if i[target] <= classification_threshold:
-                        i[target] = 0
-                    elif i[target] > classification_threshold:
-                        i[target] = 1
-                    else:
-                        raise ValueError(
-                            "Check classification data type.",
-                            i[target],
-                            type(i[target]),
-                        )
-                dat.append(i)
-                all_targets.append(i[target])
+            try:
+                if isinstance(i[target], list):  # multioutput target
+                    all_targets.append(torch.tensor(i[target]))
+                    dat.append(i)
+                elif (
+                    i[target] is not None
+                    and i[target] != "na"
+                    and not math.isnan(i[target])
+                ):
+                    if target_multiplication_factor is not None:
+                        i[target] = i[target] * target_multiplication_factor
+                    if classification_threshold is not None:
+                        if i[target] <= classification_threshold:
+                            i[target] = 0
+                        elif i[target] > classification_threshold:
+                            i[target] = 1
+                        else:
+                            raise ValueError(
+                                "Check classification data type.",
+                                i[target],
+                                type(i[target]),
+                            )
+                    dat.append(i)
+                    all_targets.append(i[target])
+            except KeyError:
+                print(f"Warning: Target '{target}' not found in data. Keys: {list(i.keys())}")
+                continue  # Skip this item
     
     if mp_id_list is not None:
         if mp_id_list == 'bulk':

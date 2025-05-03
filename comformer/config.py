@@ -141,6 +141,7 @@ class TrainingConfig(BaseSettings):
     atom_features: Literal["basic", "atomic_number", "cfid", "cgcnn"] = "cgcnn"
     neighbor_strategy: Literal["k-nearest", "voronoi", "pairwise-k-nearest"] = "k-nearest"
     id_tag: Literal["jid", "id", "_oqmd_entry_id"] = "jid"
+    data_path: Optional[str] = None  # Path to the data file
 
     # logging configuration
 

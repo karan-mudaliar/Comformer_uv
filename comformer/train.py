@@ -155,36 +155,69 @@ def train_main(
     if passed as a dict with matching keys, pydantic validation is used
     """
     print(config)
+    import os
+    
+    # Ensure config is properly set up
     if type(config) is dict:
         try:
             config = TrainingConfig(**config)
         except Exception as exp:
             print("Check", exp)
             print('error in converting to training config!')
-    import os
+            # Fall back to using dict directly if conversion fails
     
-    if not os.path.exists(config.output_dir):
-        os.makedirs(config.output_dir)
-    checkpoint_dir = os.path.join(config.output_dir)
+    # Get the output directory from config (either dict or object)
+    output_dir = config.output_dir if hasattr(config, 'output_dir') else config.get('output_dir', '.')
+    
+    # Make sure the output directory exists (create all parent directories)
+    if not os.path.exists(output_dir):
+        print(f"Creating output directory: {output_dir}")
+        try:
+            # Using exist_ok to handle race conditions
+            os.makedirs(output_dir, exist_ok=True)
+        except Exception as e:
+            print(f"Error creating directory {output_dir}: {str(e)}")
+            # Fall back to a safe directory if we can't create the requested one
+            output_dir = os.path.join(os.getcwd(), "output")
+            os.makedirs(output_dir, exist_ok=True)
+            print(f"Using fallback output directory: {output_dir}")
+        
+    # Update config with output_dir if it's a dict
+    if isinstance(config, dict):
+        config['output_dir'] = output_dir
+        
+    checkpoint_dir = os.path.join(output_dir)
     deterministic = False
     classification = False
     print("config:")
-    tmp = config.dict()
-    f = open(os.path.join(config.output_dir, "config.json"), "w")
+    
+    # Handle both dict and TrainingConfig objects
+    tmp = config.dict() if hasattr(config, 'dict') else config.copy()
+    f = open(os.path.join(output_dir, "config.json"), "w")
     f.write(json.dumps(tmp, indent=4))
     f.close()
     global tmp_output_dir
-    tmp_output_dir = config.output_dir
-    pprint.pprint(tmp) 
-    if config.classification_threshold is not None:
+    tmp_output_dir = output_dir
+    pprint.pprint(tmp)
+    # Handle classification threshold check for both dict and object
+    classification_threshold = (
+        config.classification_threshold 
+        if hasattr(config, 'classification_threshold') 
+        else config.get('classification_threshold')
+    )
+    if classification_threshold is not None:
         classification = True
-    if config.random_seed is not None:
+    
+    # Handle random seed check for both dict and object
+    random_seed = config.random_seed if hasattr(config, 'random_seed') else config.get('random_seed')
+    if random_seed is not None:
         deterministic = True
-        ignite.utils.manual_seed(config.random_seed)
+        ignite.utils.manual_seed(random_seed)
 
     line_graph = True
     if not train_val_test_loaders:
         # use input standardization for all real-valued feature sets
+        print(f"DEBUG: In train_main, config.target='{config.target}' (type: {type(config.target)})")
         (
             train_loader,
             val_loader,
@@ -226,6 +259,7 @@ def train_main(
             use_angle=config.use_angle,
             use_save=use_save,
             mp_id_list=mp_id_list,
+            data_path=config.data_path if hasattr(config, 'data_path') else None,
         )
     else:
         train_loader = train_val_test_loaders[0]
@@ -579,11 +613,13 @@ def train_main(
         net.eval()
         targets = []
         predictions = []
+        ids = []
         import time
         t1 = time.time()
         with torch.no_grad():
             from tqdm import tqdm
-            for dat in tqdm(test_loader):
+            test_ids = test_loader.dataset.ids
+            for dat, id in zip(tqdm(test_loader), test_ids):
                 g, lg, _, target = dat
                 out_data = net([g.to(device), lg.to(device), _.to(device)])
                 out_data = out_data.cpu().numpy().tolist()
@@ -592,8 +628,26 @@ def train_main(
                     target = target[0]
                 targets.append(target)
                 predictions.append(out_data)
+                ids.append(id)
         t2 = time.time()
         f.close()
+
+        # Save predictions to JSON file
+        mem = []
+        for id, target, pred in zip(ids, targets, predictions):
+            info = {}
+            info["id"] = id
+            info["target"] = target
+            info["predictions"] = pred
+            mem.append(info)
+        
+        dumpjson(
+            filename=os.path.join(
+                config.output_dir, "single_prop_predictions.json"
+            ),
+            data=mem,
+        )
+        
         from sklearn.metrics import mean_absolute_error
         targets = np.array(targets) * std_train
         predictions = np.array(predictions) * std_train

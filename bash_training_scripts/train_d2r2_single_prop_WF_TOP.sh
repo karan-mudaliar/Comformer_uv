@@ -34,4 +34,4 @@ echo "Content of data directory:"
 ls -l data/
 
 # Run with debug output
-python -u comformer/scripts/train_D2R2.py
+python -u comformer/scripts/train_D2R2_WF_TOP.py

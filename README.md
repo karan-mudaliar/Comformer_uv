@@ -36,7 +36,7 @@ To further evaluate the performances, we use e_form with 132752 crystals and jdf
 ```bash
 conda create --name comformer python=3.10
 conda activate comformer
-conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia # or higher version if you want
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia # or higher version if you want
 conda install pyg -c pyg
 pip install jarvis-tools==2022.9.16
 python setup.py
