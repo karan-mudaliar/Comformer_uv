@@ -40,6 +40,7 @@ def train_prop_model(
     pyg_input=False,
     use_lattice=False,
     use_angle=False,
+    break_z_symmetry=False,
     output_dir=None,
     neighbor_strategy="k-nearest",
     test_only=False,
@@ -105,7 +106,9 @@ def train_prop_model(
     config["pyg_input"] = pyg_input
     config["use_lattice"] = use_lattice
     config["use_angle"] = use_angle
+    config["break_z_symmetry"] = break_z_symmetry
     config["model"]["use_angle"] = use_angle
+    config["model"]["break_z_symmetry"] = break_z_symmetry
     config["neighbor_strategy"] = neighbor_strategy
     # config["output_dir"] = '.'
     if output_dir is not None:

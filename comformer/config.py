@@ -1,3 +1,5 @@
+
+
 """Pydantic model for default configuration and validation."""
 """Implementation based on the template of Matformer."""
 
@@ -184,6 +186,7 @@ class TrainingConfig(BaseSettings):
     pyg_input: bool = False
     use_lattice: bool = False
     use_angle: bool = False
+    break_z_symmetry: bool = False
 
     # model configuration
     model: Union[
