@@ -38,5 +38,5 @@ train_prop_model(
     use_angle=True,
     output_dir=output_dir,
     output_features=2,   # Critical: final output dimension set to 2 for WF_bottom and WF_top
-    data_path="data/DFT_data.csv"  # Add explicit data path
+    data_path="/home/mudaliar.k/data/DFT_data.csv"  # Add explicit data path
 )

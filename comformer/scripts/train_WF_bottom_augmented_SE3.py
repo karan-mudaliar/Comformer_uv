@@ -30,7 +30,7 @@ output_dir = f"output/D2R2_WF_bottom_augmented_{timestamp}"
 os.makedirs(output_dir, exist_ok=True)
 
 # Also copy the data file to the output directory for reference
-data_path = "data/DFT_data_augmented.csv"  # The data file we'll be using
+data_path = "/home/mudaliar.k/data/DFT_data_augmented.csv"  # The data file we'll be using
 import shutil
 try:
     shutil.copy2(data_path, os.path.join(output_dir, os.path.basename(data_path)))

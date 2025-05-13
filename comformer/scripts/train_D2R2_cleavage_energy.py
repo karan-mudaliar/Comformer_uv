@@ -42,5 +42,5 @@ train_prop_model(
     save_dataloader=True,
     output_dir=output_dir,
     output_features=1,    # Output dimension set to 1 for single property
-    data_path="data/DFT_data.csv"  # Add explicit data path
+    data_path="/home/mudaliar.k/data/DFT_data.csv"  # Add explicit data path
 )

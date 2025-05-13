@@ -25,7 +25,7 @@ module load cuda/12.1
 eval "$(conda shell.bash hook)"
 conda activate comformer_uv
 
-cd /home/mudaliar.k/github/comformer_uv
+cd /home/mudaliar.k/github/Comformer_uv
 
 # Switch to the correct branch
 git checkout feature/work-function-target
