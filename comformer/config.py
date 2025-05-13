@@ -192,7 +192,6 @@ class TrainingConfig(BaseSettings):
         iComformerConfig,
         eComformerConfig,
     ] = iComformerConfig(name="iComformer")
-    print(model)
     @root_validator()
     def set_input_size(cls, values):
         """Automatically configure node feature dimensionality."""
