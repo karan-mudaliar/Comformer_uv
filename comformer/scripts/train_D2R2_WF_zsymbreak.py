@@ -29,7 +29,7 @@ train_prop_model(
     prop="WF",                 # Combined WF_bottom and WF_top 
     name="eComformer",         # Use equivariant model for better performance
     pyg_input=True,
-    n_epochs=350,
+    n_epochs=15,
     max_neighbors=25,
     cutoff=4.0,
     batch_size=64,
@@ -39,5 +39,6 @@ train_prop_model(
     save_dataloader=True,
     output_dir=output_dir,
     output_features=2,         # Two outputs for WF_bottom and WF_top
-    data_path="data/DFT_data.csv"  # Update with actual data path
+    data_path="/home/mudaliar.k/data/DFT_data.csv",  # Add explicit data path  # Update with actual data path
+    log_tensorboard=True
 )
