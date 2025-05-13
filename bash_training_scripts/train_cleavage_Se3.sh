@@ -23,7 +23,7 @@ module load cuda/12.1
 
 # Try this instead of source ~/.bashrcß
 eval "$(conda shell.bash hook)"
-conda activate comformer
+conda activate comformer_uv
 
 cd /home/mudaliar.k/github/comformer_uv
 # git checkout D2R2-compatibility
@@ -34,4 +34,4 @@ echo "Content of data directory:"
 ls -l data/
 
 # Run with debug output
-python -u comformer/scripts/train_cleavage_SE3.py  
+python -u comformer/scripts/train_D2R2_cleavage_energy_SE3y.py

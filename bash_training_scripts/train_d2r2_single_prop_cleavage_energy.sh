@@ -23,7 +23,7 @@ module load cuda/12.1
 
 # Try this instead of source ~/.bashrcß
 eval "$(conda shell.bash hook)"
-conda activate comformer
+conda activate comformer_uv
 
 cd /home/mudaliar.k/github/comformer_uv
 # git checkout D2R2-compatibility
