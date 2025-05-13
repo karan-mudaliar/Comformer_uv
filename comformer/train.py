@@ -467,7 +467,7 @@ def train_main(
         
         
         epoch_num = len(history["validation"][t_metric])
-        if epoch_num % 20 == 0:
+        if epoch_num % 10 == 0:  # Evaluate training set every 10 epochs instead of 20
             train_evaluator.run(train_loader)
             tmetrics = train_evaluator.state.metrics
             for metric in metrics.keys():
