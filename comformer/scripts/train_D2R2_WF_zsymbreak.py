@@ -29,7 +29,7 @@ train_prop_model(
     prop="WF",                 # Combined WF_bottom and WF_top 
     name="eComformer",         # Use equivariant model for better performance
     pyg_input=True,
-    n_epochs=15,
+    n_epochs=350,
     max_neighbors=25,
     cutoff=4.0,
     batch_size=64,
