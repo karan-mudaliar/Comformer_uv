@@ -436,8 +436,16 @@ class PygGraph(object):
         )
         atom_lat = atom_lat.repeat(node_features.shape[0],1,1)
         edge_index = torch.cat((u.unsqueeze(0), v.unsqueeze(0)), dim=0).long()
-        g = Data(x=node_features, edge_index=edge_index, edge_attr=r, edge_type=l, edge_nei=nei, atom_lat=atom_lat)
-        
+
+        # Extract z-coordinates for z-symmetry breaking
+        z_coords = None
+        if atoms is not None:
+            # Get cartesian coordinates and extract z component
+            cart_coords = atoms.cart_coords
+            z_coords = torch.tensor(cart_coords[:, 2], dtype=torch.get_default_dtype()).unsqueeze(1)
+
+        g = Data(x=node_features, edge_index=edge_index, edge_attr=r, edge_type=l, edge_nei=nei, atom_lat=atom_lat, z_coords=z_coords)
+
         return g
 
 

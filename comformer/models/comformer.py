@@ -35,6 +35,7 @@ class iComformerConfig(BaseSettings):
     use_angle: bool = False
     angle_lattice: bool = False
     classification: bool = False
+    break_z_symmetry: bool = False
 
     class Config:
         """Configure model settings behavior."""
@@ -63,6 +64,7 @@ class eComformerConfig(BaseSettings):
     use_angle: bool = False
     angle_lattice: bool = False
     classification: bool = False
+    break_z_symmetry: bool = False
 
     class Config:
         """Configure model settings behavior."""
@@ -88,6 +90,8 @@ class eComformer(nn.Module): # eComFormer
         super().__init__()
         self.classification = config.classification
         self.use_angle = config.use_angle
+        self.break_z_symmetry = config.break_z_symmetry
+
         self.atom_embedding = nn.Linear(
             config.atom_input_features, config.node_features
         )
@@ -110,9 +114,26 @@ class eComformer(nn.Module): # eComFormer
 
         self.equi_update = ComformerConvEqui(in_channels=config.node_features, out_channels=config.node_features, edge_dim=config.node_features, use_second_order_repr=True)
 
-        self.fc = nn.Sequential(
-            nn.Linear(config.node_features, config.fc_features), nn.SiLU()
-        )
+        # Add z-coordinate processing if break_z_symmetry is enabled
+        if self.break_z_symmetry:
+            # Small network to process z-coordinates
+            self.z_embedding = nn.Sequential(
+                nn.Linear(1, 16),
+                nn.SiLU(),
+                nn.Linear(16, 32),
+                nn.SiLU(),
+            )
+            # Updated FC layer to process combined features
+            self.fc = nn.Sequential(
+                nn.Linear(config.node_features + 32, config.fc_features),
+                nn.SiLU()
+            )
+        else:
+            # Original FC layer
+            self.fc = nn.Sequential(
+                nn.Linear(config.node_features, config.fc_features),
+                nn.SiLU()
+            )
         self.sigmoid = nn.Sigmoid()
 
         if self.classification:
@@ -143,9 +164,20 @@ class eComformer(nn.Module): # eComFormer
 
         # crystal-level readout
         features = scatter(node_features, data.batch, dim=0, reduce="mean")
-        
-        
-        features = self.fc(features)
+
+        # Process z-coordinates if break_z_symmetry is enabled
+        if self.break_z_symmetry and hasattr(data, 'z_coords'):
+            # Process z-coordinates
+            z_features = self.z_embedding(data.z_coords)
+
+            # Aggregate z-features at the crystal level (same as node_features)
+            z_crystal_features = scatter(z_features, data.batch, dim=0, reduce="mean")
+
+            # Combine node features with z-features
+            combined_features = torch.cat([features, z_crystal_features], dim=1)
+            features = self.fc(combined_features)
+        else:
+            features = self.fc(features)
 
         out = self.fc_out(features)
         if self.link:
@@ -164,6 +196,8 @@ class iComformer(nn.Module): # iComFormer
         super().__init__()
         self.classification = config.classification
         self.use_angle = config.use_angle
+        self.break_z_symmetry = config.break_z_symmetry
+
         self.atom_embedding = nn.Linear(
             config.atom_input_features, config.node_features
         )
@@ -196,9 +230,26 @@ class iComformer(nn.Module): # iComFormer
 
         self.edge_update_layer = ComformerConv_edge(in_channels=config.node_features, out_channels=config.node_features, heads=config.node_layer_head, edge_dim=config.node_features)
 
-        self.fc = nn.Sequential(
-            nn.Linear(config.node_features, config.fc_features), nn.SiLU()
-        )
+        # Add z-coordinate processing if break_z_symmetry is enabled
+        if self.break_z_symmetry:
+            # Small network to process z-coordinates
+            self.z_embedding = nn.Sequential(
+                nn.Linear(1, 16),
+                nn.SiLU(),
+                nn.Linear(16, 32),
+                nn.SiLU(),
+            )
+            # Updated FC layer to process combined features
+            self.fc = nn.Sequential(
+                nn.Linear(config.node_features + 32, config.fc_features),
+                nn.SiLU()
+            )
+        else:
+            # Original FC layer
+            self.fc = nn.Sequential(
+                nn.Linear(config.node_features, config.fc_features),
+                nn.SiLU()
+            )
         self.sigmoid = nn.Sigmoid()
 
         if self.classification:
@@ -233,8 +284,20 @@ class iComformer(nn.Module): # iComFormer
 
         # crystal-level readout
         features = scatter(node_features, data.batch, dim=0, reduce="mean")
-        
-        features = self.fc(features)
+
+        # Process z-coordinates if break_z_symmetry is enabled
+        if self.break_z_symmetry and hasattr(data, 'z_coords'):
+            # Process z-coordinates
+            z_features = self.z_embedding(data.z_coords)
+
+            # Aggregate z-features at the crystal level (same as node_features)
+            z_crystal_features = scatter(z_features, data.batch, dim=0, reduce="mean")
+
+            # Combine node features with z-features
+            combined_features = torch.cat([features, z_crystal_features], dim=1)
+            features = self.fc(combined_features)
+        else:
+            features = self.fc(features)
 
         out = self.fc_out(features)
         if self.link:
