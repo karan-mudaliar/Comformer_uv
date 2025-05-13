@@ -40,5 +40,4 @@ train_prop_model(
     output_dir=output_dir,
     output_features=2,         # Two outputs for WF_bottom and WF_top
     data_path="/home/mudaliar.k/data/DFT_data.csv",  # Add explicit data path  # Update with actual data path
-    log_tensorboard=True
 )
