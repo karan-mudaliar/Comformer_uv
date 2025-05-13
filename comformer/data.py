@@ -61,6 +61,13 @@ def load_dataset(
             lambda x: [x["WF_bottom"], x["WF_top"], x["cleavage_energy"]],
             axis=1
         )
+    # For training only work function properties, combine WF_bottom and WF_top
+    elif target == "WF":
+        logger.info("Combining WF_bottom and WF_top into 'WF' field for D2R2_surface_data")
+        df["WF"] = df.apply(
+            lambda x: [x["WF_bottom"], x["WF_top"]],
+            axis=1
+        )
     elif target is not None:
         # Ensure the target property exists in the dataframe
         if target in df.columns:
@@ -203,6 +210,9 @@ def get_pyg_dataset(
     if target == "all":
         vals = np.array([x for x in df[target].values])
         output_features = 3  # Number of properties we're predicting
+    elif target == "WF":
+        vals = np.array([x for x in df[target].values])
+        output_features = 2  # Number of properties we're predicting (WF_bottom, WF_top)
     else:
         vals = df[target].values
         output_features = 1
@@ -357,6 +367,18 @@ def get_train_val_loaders(
                 else:
                     missing = [col for col in required_cols if col not in df.columns]
                     raise ValueError(f"Cannot create 'all' field. Missing columns: {missing}")
+            # Make sure the 'WF' field is created if target is 'WF'
+            elif target == "WF" and "WF" not in df.columns:
+                print("Creating 'WF' field from WF_bottom and WF_top columns")
+                required_cols = ["WF_bottom", "WF_top"]
+                if all(col in df.columns for col in required_cols):
+                    df["WF"] = df.apply(
+                        lambda x: [x["WF_bottom"], x["WF_top"]],
+                        axis=1
+                    )
+                else:
+                    missing = [col for col in required_cols if col not in df.columns]
+                    raise ValueError(f"Cannot create 'WF' field. Missing columns: {missing}")
             
             d = df.to_dict(orient="records")
         else:
@@ -400,7 +422,7 @@ def get_train_val_loaders(
             d = tmp
         # logger.info(d)
         for i in d:
-            # If target is 'all' but not present in the data, create it on the fly
+            # If target is 'all' or 'WF' but not present in the data, create it on the fly
             if target == "all" and target not in i:
                 required_cols = ["WF_bottom", "WF_top", "cleavage_energy"]
                 if all(col in i for col in required_cols):
@@ -409,6 +431,15 @@ def get_train_val_loaders(
                 else:
                     missing = [col for col in required_cols if col not in i]
                     print(f"Warning: Cannot create 'all' field. Missing columns: {missing}. Available: {list(i.keys())}")
+                    continue  # Skip this item
+            elif target == "WF" and target not in i:
+                required_cols = ["WF_bottom", "WF_top"]
+                if all(col in i for col in required_cols):
+                    i[target] = [i["WF_bottom"], i["WF_top"]]
+                    print(f"Creating 'WF' field on the fly: {i[target]}")
+                else:
+                    missing = [col for col in required_cols if col not in i]
+                    print(f"Warning: Cannot create 'WF' field. Missing columns: {missing}. Available: {list(i.keys())}")
                     continue  # Skip this item
             
             try:

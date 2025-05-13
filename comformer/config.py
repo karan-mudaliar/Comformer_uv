@@ -121,6 +121,7 @@ TARGET_ENUM = Literal[
     "energy_per_atom",
     "WF_bottom",
     "WF_top",
+    "WF",  # Combined field for WF_bottom and WF_top
     "cleavage_energy",
 ]
 
