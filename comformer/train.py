@@ -605,6 +605,27 @@ def train_main(
             ),
             data=mem,
         )
+
+        # Calculate and print test MAE for multi-output predictions
+        from sklearn.metrics import mean_absolute_error
+        all_targets = np.array([item["target"] for item in mem])
+        all_predictions = np.array([item["predictions"] for item in mem])
+
+        # Calculate MAE for each output dimension
+        n_outputs = all_targets.shape[1]
+        for i in range(n_outputs):
+            targets_i = all_targets[:, i] * std_train
+            predictions_i = all_predictions[:, i] * std_train
+            if n_outputs == 2 and i == 0:
+                print(f"Test MAE (WF_bottom): {mean_absolute_error(targets_i, predictions_i):.4f}")
+            elif n_outputs == 2 and i == 1:
+                print(f"Test MAE (WF_top): {mean_absolute_error(targets_i, predictions_i):.4f}")
+            else:
+                print(f"Test MAE (output {i}): {mean_absolute_error(targets_i, predictions_i):.4f}")
+
+        # Calculate overall MAE
+        overall_mae = mean_absolute_error(all_targets.flatten() * std_train, all_predictions.flatten() * std_train)
+        print(f"Test MAE (overall): {overall_mae:.4f}")
     if (
         config.write_predictions
         and not classification
