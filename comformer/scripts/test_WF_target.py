@@ -14,15 +14,15 @@ sys.path.append(current_dir)
 from comformer.train_props import train_prop_model 
 
 # Create output directory for test
-output_dir = "output/test_WF_target"
+output_dir = "output/test_WF_target_space_group"
 os.makedirs(output_dir, exist_ok=True)
 
 # Print current branch to ensure we're on the right branch
 import subprocess
 current_branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode().strip()
 print(f"Current branch: {current_branch}")
-if current_branch != "feature/work-function-target":
-    print("WARNING: Not on feature/work-function-target branch!")
+if current_branch != "feature/training-splits":
+    print("WARNING: Not on feature/training-splits branch!")
 
 # Run a minimal test with just 1 epoch
 train_prop_model(
@@ -38,5 +38,5 @@ train_prop_model(
     use_angle=True,
     output_dir=output_dir,
     output_features=2,   # Critical: final output dimension set to 2 for WF_bottom and WF_top
-    data_path="/home/mudaliar.k/data/DFT_data.csv"  # Add explicit data path
+    data_path="/home/mudaliar.k/data/combined_space_group.csv"  # Add explicit data path
 )
