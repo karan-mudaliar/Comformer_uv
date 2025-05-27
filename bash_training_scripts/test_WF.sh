@@ -28,8 +28,8 @@ conda activate comformer_uv
 cd /home/mudaliar.k/github/Comformer_uv
 
 # Switch to the correct branch
-git checkout feature/work-function-target
-echo "Switched to feature/work-function-target branch"
+git checkout feature/training-splits
+echo "Switched to feature/training-splits branch"
 
 # More debug information
 echo "PYTHONPATH: $PYTHONPATH"

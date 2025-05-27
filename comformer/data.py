@@ -133,6 +133,40 @@ def load_pyg_graphs(
     return graphs
 
 
+def get_id_train_val_test_from_splits(dat, id_tag="jid"):
+    """Get train, val, test IDs from predetermined split column."""
+    try:
+        id_train = []
+        id_val = []
+        id_test = []
+        
+        for idx, item in enumerate(dat):
+            split_value = item.get('split', '').lower().strip()
+            if split_value in ['train', 'training']:
+                id_train.append(idx)
+            elif split_value in ['val', 'validation', 'valid']:
+                id_val.append(idx)
+            elif split_value in ['test', 'testing']:
+                id_test.append(idx)
+            else:
+                logger.warning(f"Unknown split value '{split_value}' for item {item.get(id_tag, idx)}. Skipping.")
+        
+        # Validate that we have data in each split
+        if len(id_train) == 0:
+            raise ValueError("No training samples found in split column")
+        if len(id_val) == 0:
+            raise ValueError("No validation samples found in split column")
+        if len(id_test) == 0:
+            raise ValueError("No test samples found in split column")
+            
+        logger.info(f"Using predetermined splits: train={len(id_train)}, val={len(id_val)}, test={len(id_test)}")
+        return id_train, id_val, id_test
+        
+    except Exception as e:
+        logger.error(f"Error processing predetermined splits: {e}")
+        raise
+
+
 def get_id_train_val_test(
     total_size=None,
     split_seed=123,
@@ -290,6 +324,7 @@ def get_train_val_loaders(
     target_multiplication_factor: Optional[float] = None,
     standard_scalar_and_pca=False,
     keep_data_order=False,
+    use_predetermined_splits=True,
     output_features=1,
     output_dir=None,
     matrix_input=False,
@@ -490,17 +525,35 @@ def get_train_val_loaders(
                 dataset_test = pk.load(f)
 
     else:
-        id_train, id_val, id_test = get_id_train_val_test(
-            total_size=len(dat),
-            split_seed=split_seed,
-            train_ratio=train_ratio,
-            val_ratio=val_ratio,
-            test_ratio=test_ratio,
-            n_train=n_train,
-            n_test=n_test,
-            n_val=n_val,
-            keep_data_order=keep_data_order,
-        )
+        # Check if we should use predetermined splits
+        use_split_column = False
+        if use_predetermined_splits and len(dat) > 0:
+            # Check if split column exists in the data
+            if 'split' in dat[0]:
+                logger.info("Split column detected. Attempting to use predetermined splits.")
+                try:
+                    id_train, id_val, id_test = get_id_train_val_test_from_splits(dat, id_tag)
+                    use_split_column = True
+                except Exception as e:
+                    logger.warning(f"Failed to use predetermined splits: {e}. Falling back to random splits.")
+                    use_split_column = False
+            else:
+                logger.info("No split column found. Using random splits.")
+        
+        # Fall back to random splits if predetermined splits not used or failed
+        if not use_split_column:
+            id_train, id_val, id_test = get_id_train_val_test(
+                total_size=len(dat),
+                split_seed=split_seed,
+                train_ratio=train_ratio,
+                val_ratio=val_ratio,
+                test_ratio=test_ratio,
+                n_train=n_train,
+                n_test=n_test,
+                n_val=n_val,
+                keep_data_order=keep_data_order,
+            )
+        
         ids_train_val_test = {}
         ids_train_val_test["id_train"] = [dat[i][id_tag] for i in id_train]
         ids_train_val_test["id_val"] = [dat[i][id_tag] for i in id_val]
