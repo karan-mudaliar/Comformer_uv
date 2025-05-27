@@ -38,7 +38,7 @@ echo "Content of data directory:"
 ls -l data/
 
 # Create output directory
-mkdir -p output/test_WF_target
+mkdir -p output/test_WF_target_split
 
 # Run the test script
 python -u comformer/scripts/test_WF_target.py

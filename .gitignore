@@ -19,3 +19,4 @@ error_*
 output_*
 sample_train.data
 .DS_Store
+*.txt
