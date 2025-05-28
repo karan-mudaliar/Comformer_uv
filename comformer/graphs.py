@@ -442,7 +442,8 @@ class PygGraph(object):
         if atoms is not None:
             # Get cartesian coordinates and extract z component
             cart_coords = atoms.cart_coords
-            z_coords = torch.tensor(cart_coords[:, 2], dtype=torch.get_default_dtype()).unsqueeze(1)
+            raw_z = cart_coords[:, 2]
+            z_coords = torch.tensor(raw_z, dtype=torch.get_default_dtype()).unsqueeze(1)
 
         g = Data(x=node_features, edge_index=edge_index, edge_attr=r, edge_type=l, edge_nei=nei, atom_lat=atom_lat, z_coords=z_coords)
 
