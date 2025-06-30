@@ -23,27 +23,9 @@ pandarallel.initialize(progress_bar=True)
 # from sklearn.pipeline import Pipeline
 import pickle as pk
 from sklearn.preprocessing import StandardScaler
-import hashlib
 # use pandas progress_apply
 tqdm.pandas()
 logger = structlog.get_logger()
-
-
-def generate_cache_key(
-    jid: str,
-    neighbor_strategy: str = "k-nearest", 
-    cutoff: float = 8.0,
-    max_neighbors: int = 12,
-    atom_features: str = "atomic_number",
-    use_canonize: bool = False,
-    use_lattice: bool = False, 
-    use_angle: bool = False
-) -> str:
-    """Generate unique cache key for graph construction."""
-    # Create a deterministic string from all parameters
-    params_str = f"{jid}_{neighbor_strategy}_{cutoff}_{max_neighbors}_{atom_features}_{use_canonize}_{use_lattice}_{use_angle}"
-    # Use hash for shorter filenames while maintaining uniqueness
-    return hashlib.md5(params_str.encode()).hexdigest()
 
 
 def load_dataset(
@@ -129,45 +111,11 @@ def load_pyg_graphs(
           edata_schemes={'r': Scheme(shape=(3,)})
     ```
     """
-    
-    # Set up cache directory if provided
-    if cachedir is not None:
-        cachedir = Path(cachedir)
-        cachedir.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Graph caching enabled. Cache directory: {cachedir}")
-    
-    def atoms_to_graph_with_cache(row):
-        """Convert structure dict to DGLGraph with caching support."""
-        atoms = row['atoms']
-        jid = row['jid']
-        
-        # Generate cache key
-        cache_key = generate_cache_key(
-            jid=jid,
-            neighbor_strategy=neighbor_strategy,
-            cutoff=cutoff,
-            max_neighbors=max_neighbors,
-            atom_features="atomic_number",
-            use_canonize=use_canonize,
-            use_lattice=use_lattice,
-            use_angle=use_angle
-        )
-        
-        # Check cache if cachedir is provided
-        if cachedir is not None:
-            cache_file = cachedir / f"{cache_key}.pkl"
-            if cache_file.exists():
-                try:
-                    with open(cache_file, 'rb') as f:
-                        cached_graph = pk.load(f)
-                    logger.debug(f"Loaded cached graph for {jid}")
-                    return cached_graph
-                except Exception as e:
-                    logger.warning(f"Failed to load cached graph for {jid}: {e}")
-        
-        # Generate graph if not cached
+    def atoms_to_graph(atoms):
+        """Convert structure dict to DGLGraph."""
+        # structure = Atoms.from_dict(atoms)
         structure = pmg_to_atoms(Structure.from_dict(eval(atoms)))
-        graph = PygGraph.atom_dgl_multigraph(
+        return PygGraph.atom_dgl_multigraph(
             structure,
             neighbor_strategy=neighbor_strategy,
             cutoff=cutoff,
@@ -178,38 +126,9 @@ def load_pyg_graphs(
             use_lattice=use_lattice,
             use_angle=use_angle,
         )
-        
-        # Save to cache if cachedir is provided
-        if cachedir is not None:
-            try:
-                with open(cache_file, 'wb') as f:
-                    pk.dump(graph, f)
-                logger.debug(f"Cached graph for {jid}")
-            except Exception as e:
-                logger.warning(f"Failed to cache graph for {jid}: {e}")
-        
-        return graph
-    
     logger.info("Applying transform to our code")
-    if cachedir is not None:
-        logger.info(f"Processing {len(df)} structures with caching enabled")
-        graphs = df[['atoms', 'jid']].apply(atoms_to_graph_with_cache, axis=1).values
-    else:
-        # Fallback to original non-cached method
-        def atoms_to_graph(atoms):
-            structure = pmg_to_atoms(Structure.from_dict(eval(atoms)))
-            return PygGraph.atom_dgl_multigraph(
-                structure,
-                neighbor_strategy=neighbor_strategy,
-                cutoff=cutoff,
-                atom_features="atomic_number",
-                max_neighbors=max_neighbors,
-                compute_line_graph=False,
-                use_canonize=use_canonize,
-                use_lattice=use_lattice,
-                use_angle=use_angle,
-            )
-        graphs = df["atoms"].apply(atoms_to_graph).values
+    graphs = df["atoms"].apply(atoms_to_graph).values 
+    # graphs = df["atoms"].paral_apply(atoms_to_graph).values
 
     return graphs
 
@@ -317,7 +236,6 @@ def get_pyg_dataset(
     mean_train=None,
     std_train=None,
     now=False, # for test
-    cachedir: Optional[Path] = None,
 ):
     """Get pyg Dataset."""
     df = pd.DataFrame(dataset)
@@ -346,7 +264,6 @@ def get_pyg_dataset(
         max_neighbors=max_neighbors,
         use_lattice=use_lattice,
         use_angle=use_angle,
-        cachedir=cachedir,
     )
     if mean_train == None:
         mean_train = np.mean(vals)
@@ -417,7 +334,6 @@ def get_train_val_loaders(
     use_save=True,
     mp_id_list=None,
     data_path=None,
-    cachedir: Optional[Path] = None,
 ):
     """Help function to set up JARVIS train and val dataloaders."""
     # Log important parameters
@@ -467,8 +383,6 @@ def get_train_val_loaders(
             val_loader,
             test_loader,
             train_loader.dataset.prepare_batch,
-            None,  # mean_train not available from cached loaders
-            None,  # std_train not available from cached loaders
         )
     else:
         if not dataset_array:
@@ -669,7 +583,6 @@ def get_train_val_loaders(
         use_lattice=use_lattice,
         use_angle=use_angle,
         use_save=False,
-        cachedir=cachedir,
     )
     val_data,_,_ = get_pyg_dataset(
         dataset=dataset_val,
@@ -690,7 +603,6 @@ def get_train_val_loaders(
         use_save=False,
         mean_train=mean_train,
         std_train=std_train,
-        cachedir=cachedir,
     )
     test_data,_,_ = get_pyg_dataset(
         dataset=dataset_test,
@@ -711,7 +623,6 @@ def get_train_val_loaders(
         use_save=False,
         mean_train=mean_train,
         std_train=std_train,
-        cachedir=cachedir,
     )
 
     
