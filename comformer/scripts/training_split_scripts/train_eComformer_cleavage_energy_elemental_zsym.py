@@ -26,5 +26,5 @@ train_prop_model(
     save_dataloader=True,
     output_dir=output_dir,
     output_features=1,    # Single output for cleavage energy
-    data_path="/home/mudaliar.k/data/combined_elemental.csv"
+    data_path=os.environ.get("ROBINLAB_DATA_PATH", "/home/mudaliar.k/data") + "/combined_elemental.csv"
 )

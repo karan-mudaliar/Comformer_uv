@@ -54,7 +54,8 @@ echo "Conda environment: $CONDA_DEFAULT_ENV"
 echo "Content of data directory:"
 ls -l ../data/
 
-# Run the training script
+# Run the training script with Robin lab data path
+export ROBINLAB_DATA_PATH="/home/kmudaliar/data"
 echo "🚀 Running train_iComformer_cleavage_energy_structureid.py ..."
 python -u comformer/scripts/training_split_scripts/train_iComformer_cleavage_energy_structureid.py
 

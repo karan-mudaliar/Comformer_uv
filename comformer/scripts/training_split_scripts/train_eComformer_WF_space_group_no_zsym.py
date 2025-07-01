@@ -26,5 +26,5 @@ train_prop_model(
     save_dataloader=True,
     output_dir=output_dir,
     output_features=2,    # Critical: final output dimension set to 2 for WF_bottom and WF_top
-    data_path="/home/mudaliar.k/data/combined_space_group.csv"
+    data_path=os.environ.get("ROBINLAB_DATA_PATH", "/home/mudaliar.k/data") + "/combined_space_group.csv"
 )
