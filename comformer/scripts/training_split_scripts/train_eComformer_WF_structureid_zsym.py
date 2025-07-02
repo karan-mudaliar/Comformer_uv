@@ -19,7 +19,7 @@ train_prop_model(
     n_epochs=350,
     max_neighbors=25,
     cutoff=4.0,
-    batch_size=64,
+    batch_size=32,
     use_lattice=True,
     use_angle=True,
     break_z_symmetry=True,  # eComformer WITH symmetry breaking
