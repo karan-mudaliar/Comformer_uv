@@ -45,12 +45,11 @@ def train_prop_model(
     output_dir=None,
     neighbor_strategy="k-nearest",
     test_only=False,
-    use_save=False,
+    use_save=True,
     mp_id_list=None,
     file_name=None,
     atom_features="cgcnn",
     data_path=None,
-    limit=None,
 ):
     """Train models for a dataset and a property."""
     print(f"DEBUG: Inside train_prop_model, prop='{prop}')")
@@ -119,9 +118,6 @@ def train_prop_model(
     
     if data_path is not None:
         config["data_path"] = data_path
-    
-    if limit is not None:
-        config["limit"] = limit
     
     if id_tag is not None:
         config["id_tag"] = id_tag

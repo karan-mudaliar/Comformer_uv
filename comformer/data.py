@@ -14,7 +14,6 @@ from jarvis.core.atoms import Atoms,  pmg_to_atoms
 import structlog
 from pymatgen.core import Structure
 from comformer.graphs import PygGraph, PygStructureDataset
-from comformer.graph_cache import GraphCache
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import math
@@ -99,40 +98,24 @@ def load_pyg_graphs(
     use_canonize: bool = False,
     use_lattice: bool = False,
     use_angle: bool = False,
-    output_dir: str = ".",
-    enable_graph_cache: bool = True,
 ):
-    """Construct crystal graphs with intelligent per-row caching.
+    """Construct crystal graphs.
 
-    Uses jid + graph parameters as cache key for efficient reuse across splits.
+    Load only atomic number node features
+    and bond displacement vector edge features.
+
+    Resulting graphs have scheme e.g.
+    ```
+    Graph(num_nodes=12, num_edges=156,
+          ndata_schemes={'atom_features': Scheme(shape=(1,)}
+          edata_schemes={'r': Scheme(shape=(3,)})
+    ```
     """
-    # Initialize cache
-    cache_dir = os.path.join(output_dir, "graph_cache")
-    graph_cache = GraphCache(cache_dir=cache_dir, enabled=enable_graph_cache)
-    
-    # Graph construction parameters for cache key
-    graph_params = {
-        "neighbor_strategy": neighbor_strategy,
-        "cutoff": cutoff,
-        "max_neighbors": max_neighbors,
-        "use_canonize": use_canonize,
-        "use_lattice": use_lattice,
-        "use_angle": use_angle,
-    }
-    
-    def atoms_to_graph_cached(row):
-        """Convert structure dict to graph with intelligent caching."""
-        jid = row.get('jid', 'unknown')
-        atoms_dict = row['atoms']
-        
-        # Try cache first
-        cached_graph = graph_cache.get(jid, **graph_params)
-        if cached_graph is not None:
-            return cached_graph
-        
-        # Cache miss - compute graph
-        structure = pmg_to_atoms(Structure.from_dict(eval(atoms_dict)))
-        graph = PygGraph.atom_dgl_multigraph(
+    def atoms_to_graph(atoms):
+        """Convert structure dict to DGLGraph."""
+        # structure = Atoms.from_dict(atoms)
+        structure = pmg_to_atoms(Structure.from_dict(eval(atoms)))
+        return PygGraph.atom_dgl_multigraph(
             structure,
             neighbor_strategy=neighbor_strategy,
             cutoff=cutoff,
@@ -143,17 +126,10 @@ def load_pyg_graphs(
             use_lattice=use_lattice,
             use_angle=use_angle,
         )
-        
-        # Store in cache
-        graph_cache.put(jid, graph, **graph_params)
-        return graph
-    
-    logger.info("Applying graph transform with intelligent caching")
-    graphs = df.apply(atoms_to_graph_cached, axis=1).values 
-    
-    # Log cache performance
-    graph_cache.log_stats()
-    
+    logger.info("Applying transform to our code")
+    graphs = df["atoms"].apply(atoms_to_graph).values 
+    # graphs = df["atoms"].paral_apply(atoms_to_graph).values
+
     return graphs
 
 
@@ -275,9 +251,10 @@ def get_pyg_dataset(
         vals = df[target].values
         output_features = 1
     
+    output_dir = "./saved_data/" + tmp_name + "test_graph_angle.pkl" # for fast test use
     print("data range", np.max(vals), np.min(vals))
-    print("output_dir:", output_dir)
-    print('using intelligent graph caching')
+    print(output_dir)
+    print('graphs not saved')
     graphs = load_pyg_graphs(
         df,
         name=name,
@@ -287,8 +264,6 @@ def get_pyg_dataset(
         max_neighbors=max_neighbors,
         use_lattice=use_lattice,
         use_angle=use_angle,
-        output_dir=output_dir,
-        enable_graph_cache=True,
     )
     if mean_train == None:
         mean_train = np.mean(vals)
@@ -359,7 +334,6 @@ def get_train_val_loaders(
     use_save=True,
     mp_id_list=None,
     data_path=None,
-    limit=None,
 ):
     """Help function to set up JARVIS train and val dataloaders."""
     # Log important parameters
@@ -372,128 +346,164 @@ def get_train_val_loaders(
     std_train=None
     assert (matrix_input and pyg_input) == False
     
+    train_sample = filename + "_train.data"
+    val_sample = filename + "_val.data"
+    test_sample = filename + "_test.data"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    
-    if not dataset_array:
-        # First load the dataset
-        print(f"DEBUG: Calling load_dataset with target='{target}', limit={limit}")
-        df = load_dataset(name=dataset, data_path=data_path, target=target, limit=limit)
-        
-        # Make sure the 'all' field is created if target is 'all'
-        if target == "all" and "all" not in df.columns:
-            print("Creating 'all' field from WF_bottom, WF_top, and cleavage_energy columns")
-            required_cols = ["WF_bottom", "WF_top", "cleavage_energy"]
-            if all(col in df.columns for col in required_cols):
-                df["all"] = df.apply(
-                    lambda x: [x["WF_bottom"], x["WF_top"], x["cleavage_energy"]],
-                    axis=1
-                )
-            else:
-                missing = [col for col in required_cols if col not in df.columns]
-                raise ValueError(f"Cannot create 'all' field. Missing columns: {missing}")
-        # Make sure the 'WF' field is created if target is 'WF'
-        elif target == "WF" and "WF" not in df.columns:
-            print("Creating 'WF' field from WF_bottom and WF_top columns")
-            required_cols = ["WF_bottom", "WF_top"]
-            if all(col in df.columns for col in required_cols):
-                df["WF"] = df.apply(
-                    lambda x: [x["WF_bottom"], x["WF_top"]],
-                    axis=1
-                )
-            else:
-                missing = [col for col in required_cols if col not in df.columns]
-                raise ValueError(f"Cannot create 'WF' field. Missing columns: {missing}")
-        
-        d = df.to_dict(orient="records")
-    else:
-        d = dataset_array
-        # for ii, i in enumerate(pc_y):
-        #    d[ii][target] = pc_y[ii].tolist()
-
-    dat = []
-    if classification_threshold is not None:
-        print(
-            "Using ",
-            classification_threshold,
-            " for classifying ",
-            target,
-            " data.",
+    if (
+        os.path.exists(train_sample)
+        and os.path.exists(val_sample)
+        and os.path.exists(test_sample)
+        and save_dataloader
+    ):
+        print("Loading from saved file...")
+        print("Make sure all the DataLoader params are same.")
+        print("This module is made for debugging only.")
+        train_loader = torch.load(train_sample)
+        val_loader = torch.load(val_sample)
+        test_loader = torch.load(test_sample)
+        if train_loader.pin_memory != pin_memory:
+            train_loader.pin_memory = pin_memory
+        if test_loader.pin_memory != pin_memory:
+            test_loader.pin_memory = pin_memory
+        if val_loader.pin_memory != pin_memory:
+            val_loader.pin_memory = pin_memory
+        if train_loader.num_workers != workers:
+            train_loader.num_workers = workers
+        if test_loader.num_workers != workers:
+            test_loader.num_workers = workers
+        if val_loader.num_workers != workers:
+            val_loader.num_workers = workers
+        print("train", len(train_loader.dataset))
+        print("val", len(val_loader.dataset))
+        print("test", len(test_loader.dataset))
+        return (
+            train_loader,
+            val_loader,
+            test_loader,
+            train_loader.dataset.prepare_batch,
         )
-        print("Converting target data into 1 and 0.")
-    all_targets = []
+    else:
+        if not dataset_array:
+            # First load the dataset
+            print(f"DEBUG: Calling load_dataset with target='{target}'")
+            df = load_dataset(name=dataset, data_path=data_path, target=target)
+            
+            # Make sure the 'all' field is created if target is 'all'
+            if target == "all" and "all" not in df.columns:
+                print("Creating 'all' field from WF_bottom, WF_top, and cleavage_energy columns")
+                required_cols = ["WF_bottom", "WF_top", "cleavage_energy"]
+                if all(col in df.columns for col in required_cols):
+                    df["all"] = df.apply(
+                        lambda x: [x["WF_bottom"], x["WF_top"], x["cleavage_energy"]],
+                        axis=1
+                    )
+                else:
+                    missing = [col for col in required_cols if col not in df.columns]
+                    raise ValueError(f"Cannot create 'all' field. Missing columns: {missing}")
+            # Make sure the 'WF' field is created if target is 'WF'
+            elif target == "WF" and "WF" not in df.columns:
+                print("Creating 'WF' field from WF_bottom and WF_top columns")
+                required_cols = ["WF_bottom", "WF_top"]
+                if all(col in df.columns for col in required_cols):
+                    df["WF"] = df.apply(
+                        lambda x: [x["WF_bottom"], x["WF_top"]],
+                        axis=1
+                    )
+                else:
+                    missing = [col for col in required_cols if col not in df.columns]
+                    raise ValueError(f"Cannot create 'WF' field. Missing columns: {missing}")
+            
+            d = df.to_dict(orient="records")
+        else:
+            d = dataset_array
+            # for ii, i in enumerate(pc_y):
+            #    d[ii][target] = pc_y[ii].tolist()
 
-    # TODO:make an all key in qm9_dgl
-    if dataset == "qm9_dgl" and target == "all":
-        print("Making all qm9_dgl")
-        tmp = []
-        for ii in d:
-            ii["all"] = [
-                ii["mu"],
-                ii["alpha"],
-                ii["homo"],
-                ii["lumo"],
-                ii["gap"],
-                ii["r2"],
-                ii["zpve"],
-                ii["U0"],
-                ii["U"],
-                ii["H"],
-                ii["G"],
-                ii["Cv"],
-            ]
-            tmp.append(ii)
-        print("Made all qm9_dgl")
-        d = tmp
-    # logger.info(d)
-    for i in d:
-        # If target is 'all' or 'WF' but not present in the data, create it on the fly
-        if target == "all" and target not in i:
-            required_cols = ["WF_bottom", "WF_top", "cleavage_energy"]
-            if all(col in i for col in required_cols):
-                i[target] = [i["WF_bottom"], i["WF_top"], i["cleavage_energy"]]
-                print(f"Creating 'all' field on the fly: {i[target]}")
-            else:
-                missing = [col for col in required_cols if col not in i]
-                print(f"Warning: Cannot create 'all' field. Missing columns: {missing}. Available: {list(i.keys())}")
+        dat = []
+        if classification_threshold is not None:
+            print(
+                "Using ",
+                classification_threshold,
+                " for classifying ",
+                target,
+                " data.",
+            )
+            print("Converting target data into 1 and 0.")
+        all_targets = []
+
+        # TODO:make an all key in qm9_dgl
+        if dataset == "qm9_dgl" and target == "all":
+            print("Making all qm9_dgl")
+            tmp = []
+            for ii in d:
+                ii["all"] = [
+                    ii["mu"],
+                    ii["alpha"],
+                    ii["homo"],
+                    ii["lumo"],
+                    ii["gap"],
+                    ii["r2"],
+                    ii["zpve"],
+                    ii["U0"],
+                    ii["U"],
+                    ii["H"],
+                    ii["G"],
+                    ii["Cv"],
+                ]
+                tmp.append(ii)
+            print("Made all qm9_dgl")
+            d = tmp
+        # logger.info(d)
+        for i in d:
+            # If target is 'all' or 'WF' but not present in the data, create it on the fly
+            if target == "all" and target not in i:
+                required_cols = ["WF_bottom", "WF_top", "cleavage_energy"]
+                if all(col in i for col in required_cols):
+                    i[target] = [i["WF_bottom"], i["WF_top"], i["cleavage_energy"]]
+                    print(f"Creating 'all' field on the fly: {i[target]}")
+                else:
+                    missing = [col for col in required_cols if col not in i]
+                    print(f"Warning: Cannot create 'all' field. Missing columns: {missing}. Available: {list(i.keys())}")
+                    continue  # Skip this item
+            elif target == "WF" and target not in i:
+                required_cols = ["WF_bottom", "WF_top"]
+                if all(col in i for col in required_cols):
+                    i[target] = [i["WF_bottom"], i["WF_top"]]
+                    print(f"Creating 'WF' field on the fly: {i[target]}")
+                else:
+                    missing = [col for col in required_cols if col not in i]
+                    print(f"Warning: Cannot create 'WF' field. Missing columns: {missing}. Available: {list(i.keys())}")
+                    continue  # Skip this item
+            
+            try:
+                if isinstance(i[target], list):  # multioutput target
+                    all_targets.append(torch.tensor(i[target]))
+                    dat.append(i)
+                elif (
+                    i[target] is not None
+                    and i[target] != "na"
+                    and not math.isnan(i[target])
+                ):
+                    if target_multiplication_factor is not None:
+                        i[target] = i[target] * target_multiplication_factor
+                    if classification_threshold is not None:
+                        if i[target] <= classification_threshold:
+                            i[target] = 0
+                        elif i[target] > classification_threshold:
+                            i[target] = 1
+                        else:
+                            raise ValueError(
+                                "Check classification data type.",
+                                i[target],
+                                type(i[target]),
+                            )
+                    dat.append(i)
+                    all_targets.append(i[target])
+            except KeyError:
+                print(f"Warning: Target '{target}' not found in data. Keys: {list(i.keys())}")
                 continue  # Skip this item
-        elif target == "WF" and target not in i:
-            required_cols = ["WF_bottom", "WF_top"]
-            if all(col in i for col in required_cols):
-                i[target] = [i["WF_bottom"], i["WF_top"]]
-                print(f"Creating 'WF' field on the fly: {i[target]}")
-            else:
-                missing = [col for col in required_cols if col not in i]
-                print(f"Warning: Cannot create 'WF' field. Missing columns: {missing}. Available: {list(i.keys())}")
-                continue  # Skip this item
-        
-        try:
-            if isinstance(i[target], list):  # multioutput target
-                all_targets.append(torch.tensor(i[target]))
-                dat.append(i)
-            elif (
-                i[target] is not None
-                and i[target] != "na"
-                and not math.isnan(i[target])
-            ):
-                if target_multiplication_factor is not None:
-                    i[target] = i[target] * target_multiplication_factor
-                if classification_threshold is not None:
-                    if i[target] <= classification_threshold:
-                        i[target] = 0
-                    elif i[target] > classification_threshold:
-                        i[target] = 1
-                    else:
-                        raise ValueError(
-                            "Check classification data type.",
-                            i[target],
-                            type(i[target]),
-                        )
-                dat.append(i)
-                all_targets.append(i[target])
-        except KeyError:
-            print(f"Warning: Target '{target}' not found in data. Keys: {list(i.keys())}")
-            continue  # Skip this item
     
     if mp_id_list is not None:
         if mp_id_list == 'bulk':
@@ -650,6 +660,10 @@ def get_train_val_loaders(
         num_workers=workers,
         pin_memory=pin_memory,
     )
+    if save_dataloader:
+        torch.save(train_loader, train_sample)
+        torch.save(val_loader, val_sample)
+        torch.save(test_loader, test_sample)
     
     print("n_train:", len(train_loader.dataset))
     print("n_val:", len(val_loader.dataset))
