@@ -449,51 +449,51 @@ def get_train_val_loaders(
     for i in d:
         # If target is 'all' or 'WF' but not present in the data, create it on the fly
         if target == "all" and target not in i:
-                required_cols = ["WF_bottom", "WF_top", "cleavage_energy"]
-                if all(col in i for col in required_cols):
-                    i[target] = [i["WF_bottom"], i["WF_top"], i["cleavage_energy"]]
-                    print(f"Creating 'all' field on the fly: {i[target]}")
-                else:
-                    missing = [col for col in required_cols if col not in i]
-                    print(f"Warning: Cannot create 'all' field. Missing columns: {missing}. Available: {list(i.keys())}")
-                    continue  # Skip this item
-            elif target == "WF" and target not in i:
-                required_cols = ["WF_bottom", "WF_top"]
-                if all(col in i for col in required_cols):
-                    i[target] = [i["WF_bottom"], i["WF_top"]]
-                    print(f"Creating 'WF' field on the fly: {i[target]}")
-                else:
-                    missing = [col for col in required_cols if col not in i]
-                    print(f"Warning: Cannot create 'WF' field. Missing columns: {missing}. Available: {list(i.keys())}")
-                    continue  # Skip this item
-            
-            try:
-                if isinstance(i[target], list):  # multioutput target
-                    all_targets.append(torch.tensor(i[target]))
-                    dat.append(i)
-                elif (
-                    i[target] is not None
-                    and i[target] != "na"
-                    and not math.isnan(i[target])
-                ):
-                    if target_multiplication_factor is not None:
-                        i[target] = i[target] * target_multiplication_factor
-                    if classification_threshold is not None:
-                        if i[target] <= classification_threshold:
-                            i[target] = 0
-                        elif i[target] > classification_threshold:
-                            i[target] = 1
-                        else:
-                            raise ValueError(
-                                "Check classification data type.",
-                                i[target],
-                                type(i[target]),
-                            )
-                    dat.append(i)
-                    all_targets.append(i[target])
-            except KeyError:
-                print(f"Warning: Target '{target}' not found in data. Keys: {list(i.keys())}")
+            required_cols = ["WF_bottom", "WF_top", "cleavage_energy"]
+            if all(col in i for col in required_cols):
+                i[target] = [i["WF_bottom"], i["WF_top"], i["cleavage_energy"]]
+                print(f"Creating 'all' field on the fly: {i[target]}")
+            else:
+                missing = [col for col in required_cols if col not in i]
+                print(f"Warning: Cannot create 'all' field. Missing columns: {missing}. Available: {list(i.keys())}")
                 continue  # Skip this item
+        elif target == "WF" and target not in i:
+            required_cols = ["WF_bottom", "WF_top"]
+            if all(col in i for col in required_cols):
+                i[target] = [i["WF_bottom"], i["WF_top"]]
+                print(f"Creating 'WF' field on the fly: {i[target]}")
+            else:
+                missing = [col for col in required_cols if col not in i]
+                print(f"Warning: Cannot create 'WF' field. Missing columns: {missing}. Available: {list(i.keys())}")
+                continue  # Skip this item
+        
+        try:
+            if isinstance(i[target], list):  # multioutput target
+                all_targets.append(torch.tensor(i[target]))
+                dat.append(i)
+            elif (
+                i[target] is not None
+                and i[target] != "na"
+                and not math.isnan(i[target])
+            ):
+                if target_multiplication_factor is not None:
+                    i[target] = i[target] * target_multiplication_factor
+                if classification_threshold is not None:
+                    if i[target] <= classification_threshold:
+                        i[target] = 0
+                    elif i[target] > classification_threshold:
+                        i[target] = 1
+                    else:
+                        raise ValueError(
+                            "Check classification data type.",
+                            i[target],
+                            type(i[target]),
+                        )
+                dat.append(i)
+                all_targets.append(i[target])
+        except KeyError:
+            print(f"Warning: Target '{target}' not found in data. Keys: {list(i.keys())}")
+            continue  # Skip this item
     
     if mp_id_list is not None:
         if mp_id_list == 'bulk':
