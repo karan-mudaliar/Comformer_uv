@@ -214,10 +214,28 @@ def train_main(
         deterministic = True
         ignite.utils.manual_seed(random_seed)
 
+    # Helper function to safely get config values (works with both dict and object)
+    def get_config(key, default=None):
+        if hasattr(config, key):
+            return getattr(config, key)
+        elif isinstance(config, dict):
+            return config.get(key, default)
+        else:
+            return default
+
     line_graph = True
     if not train_val_test_loaders:
         # use input standardization for all real-valued feature sets
-        print(f"DEBUG: In train_main, config.target='{config.target}' (type: {type(config.target)})")
+        target = get_config('target', 'unknown')
+        print(f"DEBUG: In train_main, target='{target}' (type: {type(target)})")
+        
+        # Get model output features safely
+        model_config = get_config('model', {})
+        if isinstance(model_config, dict):
+            output_features = model_config.get('output_features', 1)
+        else:
+            output_features = getattr(model_config, 'output_features', 1)
+        
         (
             train_loader,
             val_loader,
@@ -226,42 +244,42 @@ def train_main(
             mean_train,
             std_train,
         ) = get_train_val_loaders(
-            dataset=config.dataset,
-            target=config.target,
-            n_train=config.n_train,
-            n_val=config.n_val,
-            n_test=config.n_test,
-            train_ratio=config.train_ratio,
-            val_ratio=config.val_ratio,
-            test_ratio=config.test_ratio,
-            batch_size=config.batch_size,
-            atom_features=config.atom_features,
-            neighbor_strategy=config.neighbor_strategy,
-            standardize=config.atom_features != "cgcnn",
+            dataset=get_config('dataset'),
+            target=get_config('target'),
+            n_train=get_config('n_train'),
+            n_val=get_config('n_val'),
+            n_test=get_config('n_test'),
+            train_ratio=get_config('train_ratio'),
+            val_ratio=get_config('val_ratio'),
+            test_ratio=get_config('test_ratio'),
+            batch_size=get_config('batch_size'),
+            atom_features=get_config('atom_features'),
+            neighbor_strategy=get_config('neighbor_strategy'),
+            standardize=get_config('atom_features') != "cgcnn",
             line_graph=line_graph,
-            id_tag=config.id_tag,
-            pin_memory=config.pin_memory,
-            workers=config.num_workers,
-            save_dataloader=config.save_dataloader,
-            use_canonize=config.use_canonize,
-            filename=config.filename,
-            cutoff=config.cutoff,
-            max_neighbors=config.max_neighbors,
-            output_features=config.model.output_features,
-            classification_threshold=config.classification_threshold,
-            target_multiplication_factor=config.target_multiplication_factor,
-            standard_scalar_and_pca=config.standard_scalar_and_pca,
-            keep_data_order=config.keep_data_order,
-            use_predetermined_splits=config.use_predetermined_splits,
-            output_dir=config.output_dir,
-            matrix_input=config.matrix_input,
-            pyg_input=config.pyg_input,
-            use_lattice=config.use_lattice,
-            use_angle=config.use_angle,
+            id_tag=get_config('id_tag'),
+            pin_memory=get_config('pin_memory'),
+            workers=get_config('num_workers'),
+            save_dataloader=get_config('save_dataloader'),
+            use_canonize=get_config('use_canonize'),
+            filename=get_config('filename'),
+            cutoff=get_config('cutoff'),
+            max_neighbors=get_config('max_neighbors'),
+            output_features=output_features,
+            classification_threshold=get_config('classification_threshold'),
+            target_multiplication_factor=get_config('target_multiplication_factor'),
+            standard_scalar_and_pca=get_config('standard_scalar_and_pca'),
+            keep_data_order=get_config('keep_data_order'),
+            use_predetermined_splits=get_config('use_predetermined_splits'),
+            output_dir=get_config('output_dir'),
+            matrix_input=get_config('matrix_input'),
+            pyg_input=get_config('pyg_input'),
+            use_lattice=get_config('use_lattice'),
+            use_angle=get_config('use_angle'),
             use_save=use_save,
             mp_id_list=mp_id_list,
-            data_path=config.data_path if hasattr(config, 'data_path') else None,
-            limit=config.limit if hasattr(config, 'limit') else None,
+            data_path=get_config('data_path'),
+            limit=get_config('limit'),
         )
     else:
         train_loader = train_val_test_loaders[0]
