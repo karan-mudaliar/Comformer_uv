@@ -23,7 +23,7 @@ train_prop_model(
     use_lattice=True,
     use_angle=True,
     break_z_symmetry=True,  # eComformer WITH symmetry breaking
-    save_dataloader=True,
+    save_dataloader=False,
     output_dir=output_dir,
     output_features=2,    # Critical: final output dimension set to 2 for WF_bottom and WF_top
     data_path=os.environ.get("ROBINLAB_DATA_PATH", "/home/mudaliar.k/data") + "/combined_space_group.csv"

@@ -23,7 +23,7 @@ train_prop_model(
     use_lattice=True,
     use_angle=True,
     break_z_symmetry=False,  # eComformer baseline without symmetry breaking
-    save_dataloader=True,
+    save_dataloader=False,
     output_dir=output_dir,
     output_features=1,    # Single output for cleavage energy
     data_path=os.environ.get("ROBINLAB_DATA_PATH", "/home/mudaliar.k/data") + "/combined_elemental.csv"
