@@ -53,7 +53,7 @@ def test_first_run_caching():
     # Load small dataset
     df = load_dataset(
         name="D2R2_surface_data", 
-        data_path="data/DFT_data.csv",
+        data_path="/home/kmudaliar/data/DFT_data.csv",
         target="WF_bottom",
         limit=1000  # Hardcoded limit for testing
     )
@@ -92,7 +92,7 @@ def test_second_run_cache_loading():
     # Load same dataset again
     df = load_dataset(
         name="D2R2_surface_data", 
-        data_path="data/DFT_data.csv",
+        data_path="/home/kmudaliar/data/DFT_data.csv",
         target="WF_bottom",
         limit=1000  # Same limit
     )
@@ -130,7 +130,7 @@ def test_different_parameters_create_new_cache():
     
     df = load_dataset(
         name="D2R2_surface_data", 
-        data_path="data/DFT_data.csv",
+        data_path="/home/kmudaliar/data/DFT_data.csv",
         target="WF_bottom",
         limit=1000
     )
