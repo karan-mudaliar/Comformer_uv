@@ -389,10 +389,11 @@ def train_main(
                 predictions.append(out_data)
         t2 = time.time()
         f.close()
-        from sklearn.metrics import mean_absolute_error
+        from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error
         targets = np.array(targets) * std_train
         predictions = np.array(predictions) * std_train
         print("Test MAE:", mean_absolute_error(targets, predictions))
+        print("Test MAPE:", mean_absolute_percentage_error(targets, predictions))
         print("Total test time:", t2-t1)
         return mean_absolute_error(targets, predictions)
 
@@ -607,26 +608,33 @@ def train_main(
             data=mem,
         )
 
-        # Calculate and print test MAE for multi-output predictions
-        from sklearn.metrics import mean_absolute_error
+        # Calculate and print test MAE and MAPE for multi-output predictions
+        from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error
         all_targets = np.array([item["target"] for item in mem])
         all_predictions = np.array([item["predictions"] for item in mem])
 
-        # Calculate MAE for each output dimension
+        # Calculate MAE and MAPE for each output dimension
         n_outputs = all_targets.shape[1]
         for i in range(n_outputs):
             targets_i = all_targets[:, i] * std_train
             predictions_i = all_predictions[:, i] * std_train
+            mae_i = mean_absolute_error(targets_i, predictions_i)
+            mape_i = mean_absolute_percentage_error(targets_i, predictions_i)
             if n_outputs == 2 and i == 0:
-                print(f"Test MAE (WF_bottom): {mean_absolute_error(targets_i, predictions_i):.4f}")
+                print(f"Test MAE (WF_bottom): {mae_i:.4f}")
+                print(f"Test MAPE (WF_bottom): {mape_i:.4f}")
             elif n_outputs == 2 and i == 1:
-                print(f"Test MAE (WF_top): {mean_absolute_error(targets_i, predictions_i):.4f}")
+                print(f"Test MAE (WF_top): {mae_i:.4f}")
+                print(f"Test MAPE (WF_top): {mape_i:.4f}")
             else:
-                print(f"Test MAE (output {i}): {mean_absolute_error(targets_i, predictions_i):.4f}")
+                print(f"Test MAE (output {i}): {mae_i:.4f}")
+                print(f"Test MAPE (output {i}): {mape_i:.4f}")
 
-        # Calculate overall MAE
+        # Calculate overall MAE and MAPE
         overall_mae = mean_absolute_error(all_targets.flatten() * std_train, all_predictions.flatten() * std_train)
+        overall_mape = mean_absolute_percentage_error(all_targets.flatten() * std_train, all_predictions.flatten() * std_train)
         print(f"Test MAE (overall): {overall_mae:.4f}")
+        print(f"Test MAPE (overall): {overall_mape:.4f}")
     if (
         config.write_predictions
         and not classification
@@ -670,10 +678,11 @@ def train_main(
             data=mem,
         )
         
-        from sklearn.metrics import mean_absolute_error
+        from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error
         targets = np.array(targets) * std_train
         predictions = np.array(predictions) * std_train
         print("Test MAE:", mean_absolute_error(targets, predictions))
+        print("Test MAPE:", mean_absolute_percentage_error(targets, predictions))
         
     return history
 
