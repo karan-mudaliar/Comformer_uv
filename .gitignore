@@ -4,6 +4,7 @@ __pycache__/
 build/
 dist/
 wheels/
+cache/
 *.egg-info
 # Virtual environments
 .venv
@@ -19,3 +20,4 @@ error_*
 output_*
 sample_train.data
 .DS_Store
+*.txt

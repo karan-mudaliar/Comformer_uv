@@ -252,6 +252,7 @@ def train_main(
             target_multiplication_factor=config.target_multiplication_factor,
             standard_scalar_and_pca=config.standard_scalar_and_pca,
             keep_data_order=config.keep_data_order,
+            use_predetermined_splits=config.use_predetermined_splits,
             output_dir=config.output_dir,
             matrix_input=config.matrix_input,
             pyg_input=config.pyg_input,

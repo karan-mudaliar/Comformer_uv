@@ -91,7 +91,6 @@ class eComformer(nn.Module): # eComFormer
         self.classification = config.classification
         self.use_angle = config.use_angle
         self.break_z_symmetry = config.break_z_symmetry
-
         self.atom_embedding = nn.Linear(
             config.atom_input_features, config.node_features
         )
@@ -114,26 +113,18 @@ class eComformer(nn.Module): # eComFormer
 
         self.equi_update = ComformerConvEqui(in_channels=config.node_features, out_channels=config.node_features, edge_dim=config.node_features, use_second_order_repr=True)
 
-        # Add z-coordinate processing if break_z_symmetry is enabled
+        # z-coordinate processing for z-symmetry breaking (if enabled)
         if self.break_z_symmetry:
-            # Small network to process z-coordinates
             self.z_embedding = nn.Sequential(
                 nn.Linear(1, 16),
                 nn.SiLU(),
-                nn.Linear(16, 32),
+                nn.Linear(16, config.node_features),  # Match node_features size for direct addition
                 nn.SiLU(),
             )
-            # Updated FC layer to process combined features
-            self.fc = nn.Sequential(
-                nn.Linear(config.node_features + 32, config.fc_features),
-                nn.SiLU()
-            )
-        else:
-            # Original FC layer
-            self.fc = nn.Sequential(
-                nn.Linear(config.node_features, config.fc_features),
-                nn.SiLU()
-            )
+
+        self.fc = nn.Sequential(
+            nn.Linear(config.node_features, config.fc_features), nn.SiLU()
+        )
         self.sigmoid = nn.Sigmoid()
 
         if self.classification:
@@ -152,6 +143,24 @@ class eComformer(nn.Module): # eComFormer
     def forward(self, data) -> torch.Tensor:
         data, _, _ = data
         node_features = self.atom_embedding(data.x)
+        
+        # Early z-symmetry breaking: inject surface information before message passing
+        if self.break_z_symmetry and hasattr(data, 'z_coords') and data.z_coords is not None:
+            # Convert raw z-coordinates to surface-relative coordinates (frame-invariant)
+            raw_z = data.z_coords.squeeze(1)  # Remove extra dimension
+            slab_center = torch.mean(raw_z)  # Center of slab in z-direction
+            relative_z = raw_z - slab_center  # Relative to slab center
+            z_spread = torch.std(raw_z)  # Characteristic slab thickness
+            
+            # Avoid division by zero for perfectly flat structures
+            if z_spread > 1e-6:
+                normalized_z = relative_z / z_spread  # Normalized by thickness
+            else:
+                normalized_z = relative_z  # Keep relative coordinates if spread is tiny
+            
+            z_features = self.z_embedding(normalized_z.unsqueeze(1))
+            node_features = node_features + z_features
+            
         n_nodes = node_features.shape[0]
         edge_feat = -0.75 / torch.norm(data.edge_attr, dim=1)
         num_edge = edge_feat.shape[0]
@@ -164,20 +173,9 @@ class eComformer(nn.Module): # eComFormer
 
         # crystal-level readout
         features = scatter(node_features, data.batch, dim=0, reduce="mean")
-
-        # Process z-coordinates if break_z_symmetry is enabled
-        if self.break_z_symmetry and hasattr(data, 'z_coords'):
-            # Process z-coordinates
-            z_features = self.z_embedding(data.z_coords)
-
-            # Aggregate z-features at the crystal level (same as node_features)
-            z_crystal_features = scatter(z_features, data.batch, dim=0, reduce="mean")
-
-            # Combine node features with z-features
-            combined_features = torch.cat([features, z_crystal_features], dim=1)
-            features = self.fc(combined_features)
-        else:
-            features = self.fc(features)
+        
+        
+        features = self.fc(features)
 
         out = self.fc_out(features)
         if self.link:
@@ -197,7 +195,6 @@ class iComformer(nn.Module): # iComFormer
         self.classification = config.classification
         self.use_angle = config.use_angle
         self.break_z_symmetry = config.break_z_symmetry
-
         self.atom_embedding = nn.Linear(
             config.atom_input_features, config.node_features
         )
@@ -230,26 +227,18 @@ class iComformer(nn.Module): # iComFormer
 
         self.edge_update_layer = ComformerConv_edge(in_channels=config.node_features, out_channels=config.node_features, heads=config.node_layer_head, edge_dim=config.node_features)
 
-        # Add z-coordinate processing if break_z_symmetry is enabled
+        # z-coordinate processing for z-symmetry breaking (if enabled)
         if self.break_z_symmetry:
-            # Small network to process z-coordinates
             self.z_embedding = nn.Sequential(
                 nn.Linear(1, 16),
                 nn.SiLU(),
-                nn.Linear(16, 32),
+                nn.Linear(16, config.node_features),  # Match node_features size for direct addition
                 nn.SiLU(),
             )
-            # Updated FC layer to process combined features
-            self.fc = nn.Sequential(
-                nn.Linear(config.node_features + 32, config.fc_features),
-                nn.SiLU()
-            )
-        else:
-            # Original FC layer
-            self.fc = nn.Sequential(
-                nn.Linear(config.node_features, config.fc_features),
-                nn.SiLU()
-            )
+
+        self.fc = nn.Sequential(
+            nn.Linear(config.node_features, config.fc_features), nn.SiLU()
+        )
         self.sigmoid = nn.Sigmoid()
 
         if self.classification:
@@ -268,6 +257,24 @@ class iComformer(nn.Module): # iComFormer
     def forward(self, data) -> torch.Tensor:
         data, ldata, lattice = data
         node_features = self.atom_embedding(data.x)
+        
+        # Early z-symmetry breaking: inject surface information before message passing
+        if self.break_z_symmetry and hasattr(data, 'z_coords') and data.z_coords is not None:
+            # Convert raw z-coordinates to surface-relative coordinates (frame-invariant)
+            raw_z = data.z_coords.squeeze(1)  # Remove extra dimension
+            slab_center = torch.mean(raw_z)  # Center of slab in z-direction
+            relative_z = raw_z - slab_center  # Relative to slab center
+            z_spread = torch.std(raw_z)  # Characteristic slab thickness
+            
+            # Avoid division by zero for perfectly flat structures
+            if z_spread > 1e-6:
+                normalized_z = relative_z / z_spread  # Normalized by thickness
+            else:
+                normalized_z = relative_z  # Keep relative coordinates if spread is tiny
+            
+            z_features = self.z_embedding(normalized_z.unsqueeze(1))
+            node_features = node_features + z_features
+            
         edge_feat = -0.75 / torch.norm(data.edge_attr, dim=1) # [num_edges]
         edge_nei_len = -0.75 / torch.norm(data.edge_nei, dim=-1) # [num_edges, 3]
         edge_nei_angle = bond_cosine(data.edge_nei, data.edge_attr.unsqueeze(1).repeat(1, 3, 1)) # [num_edges, 3, 3] -> [num_edges, 3]
@@ -284,25 +291,12 @@ class iComformer(nn.Module): # iComFormer
 
         # crystal-level readout
         features = scatter(node_features, data.batch, dim=0, reduce="mean")
-
-        # Process z-coordinates if break_z_symmetry is enabled
-        if self.break_z_symmetry and hasattr(data, 'z_coords'):
-            # Process z-coordinates
-            z_features = self.z_embedding(data.z_coords)
-
-            # Aggregate z-features at the crystal level (same as node_features)
-            z_crystal_features = scatter(z_features, data.batch, dim=0, reduce="mean")
-
-            # Combine node features with z-features
-            combined_features = torch.cat([features, z_crystal_features], dim=1)
-            features = self.fc(combined_features)
-        else:
-            features = self.fc(features)
+        
+        features = self.fc(features)
 
         out = self.fc_out(features)
         if self.link:
             out = self.link(out)
 
         return torch.squeeze(out)
-
 

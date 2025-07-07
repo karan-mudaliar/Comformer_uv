@@ -178,6 +178,7 @@ class TrainingConfig(BaseSettings):
     cutoff: float = 4.0
     max_neighbors: int = 12
     keep_data_order: bool = False
+    use_predetermined_splits: bool = True
     distributed: bool = False
     n_early_stopping: Optional[int] = None  # typically 50
     output_dir: str = os.path.abspath(".")  # typically 50

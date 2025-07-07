@@ -41,6 +41,7 @@ def train_prop_model(
     use_lattice=False,
     use_angle=False,
     break_z_symmetry=False,
+    use_predetermined_splits=True,
     output_dir=None,
     neighbor_strategy="k-nearest",
     test_only=False,
@@ -107,6 +108,7 @@ def train_prop_model(
     config["use_lattice"] = use_lattice
     config["use_angle"] = use_angle
     config["break_z_symmetry"] = break_z_symmetry
+    config["use_predetermined_splits"] = use_predetermined_splits
     config["model"]["use_angle"] = use_angle
     config["model"]["break_z_symmetry"] = break_z_symmetry
     config["neighbor_strategy"] = neighbor_strategy
