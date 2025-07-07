@@ -57,7 +57,7 @@ ls -l ../data/
 # Run the training script with Robin lab data path
 echo "🚀 Running train_iComformer_WF_elemental.py ..."
 export ROBINLAB_DATA_PATH="/home/kmudaliar/data"
-python -u comformer/scripts/training_split_scripts/train_iComformer_WF_elemental.py
+nohup python -u comformer/scripts/training_split_scripts/train_iComformer_WF_elemental.py &
 
 echo "===== iComformer WF Elemental Training Finished: $(date) ====="
 } > "$OUT_FILE" 2> "$ERR_FILE"

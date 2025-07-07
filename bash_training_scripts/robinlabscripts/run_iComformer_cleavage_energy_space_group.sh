@@ -57,7 +57,7 @@ ls -l ../data/
 # Run the training script with Robin lab data path
 export ROBINLAB_DATA_PATH="/home/kmudaliar/data"
 echo "🚀 Running train_iComformer_cleavage_energy_space_group.py ..."
-python -u comformer/scripts/training_split_scripts/train_iComformer_cleavage_energy_space_group.py
+nohup python -u comformer/scripts/training_split_scripts/train_iComformer_cleavage_energy_space_group.py &
 
 echo "===== iComformer Cleavage Energy Space Group Training Finished: $(date) ====="
 } > "$OUT_FILE" 2> "$ERR_FILE"
