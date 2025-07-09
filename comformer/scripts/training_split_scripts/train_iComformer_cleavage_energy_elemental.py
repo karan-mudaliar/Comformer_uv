@@ -16,7 +16,7 @@ train_prop_model(
     prop="cleavage_energy",
     name="iComformer",
     pyg_input=True,
-    n_epochs=350,
+    n_epochs=150,
     max_neighbors=25,
     cutoff=4.0,
     batch_size=32,
