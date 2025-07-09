@@ -26,5 +26,6 @@ train_prop_model(
     save_dataloader=False,
     output_dir=output_dir,
     output_features=2,    # Critical: final output dimension set to 2 for WF_bottom and WF_top
+    n_early_stopping=20,  # Stop training if validation doesn't improve for 20 epochs
     data_path=os.environ.get("ROBINLAB_DATA_PATH", "/home/mudaliar.k/data") + "/combined_elemental.csv"
 )
