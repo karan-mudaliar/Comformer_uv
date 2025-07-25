@@ -503,8 +503,49 @@ def train_main(
         if config.progress:
             pbar = ProgressBar()
             if not classification:
+                # Calculate MAPE for validation and training (same approach as test MAPE)
+                from sklearn.metrics import mean_absolute_percentage_error
+                
+                # Get validation predictions and targets for MAPE calculation
+                val_targets = []
+                val_predictions = []
+                net.eval()
+                with torch.no_grad():
+                    for dat in val_loader:
+                        g, lg, _, target = prepare_batch(dat, device)
+                        out_data = net([g, lg, _])
+                        if isinstance(out_data, torch.Tensor):
+                            out_data = out_data.cpu().numpy()
+                        if isinstance(target, torch.Tensor):
+                            target = target.cpu().numpy()
+                        val_targets.extend(target.flatten())
+                        val_predictions.extend(out_data.flatten())
+                
+                val_mape = mean_absolute_percentage_error(val_targets, val_predictions)
+                
                 pbar.log_message(f"Val_MAE: {vmetrics['mae']:.4f}")
+                pbar.log_message(f"Val_MAPE: {val_mape:.4f}")
                 pbar.log_message(f"Train_MAE: {tmetrics['mae']:.4f}")
+                
+                # Calculate MAPE for training if we evaluated it (every 10 epochs)
+                if epoch_num % 10 == 0:
+                    train_targets = []
+                    train_predictions = []
+                    with torch.no_grad():
+                        for dat in train_loader:
+                            g, lg, _, target = prepare_batch(dat, device)
+                            out_data = net([g, lg, _])
+                            if isinstance(out_data, torch.Tensor):
+                                out_data = out_data.cpu().numpy()
+                            if isinstance(target, torch.Tensor):
+                                target = target.cpu().numpy()
+                            train_targets.extend(target.flatten())
+                            train_predictions.extend(out_data.flatten())
+                    
+                    train_mape = mean_absolute_percentage_error(train_targets, train_predictions)
+                    pbar.log_message(f"Train_MAPE: {train_mape:.4f}")
+                else:
+                    pbar.log_message(f"Train_MAPE: -1 (not evaluated this epoch)")
             else:
                 pbar.log_message(f"Train ROC AUC: {tmetrics['rocauc']:.4f}")
                 pbar.log_message(f"Val ROC AUC: {vmetrics['rocauc']:.4f}")

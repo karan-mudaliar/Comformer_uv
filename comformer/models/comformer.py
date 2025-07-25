@@ -36,6 +36,7 @@ class iComformerConfig(BaseSettings):
     angle_lattice: bool = False
     classification: bool = False
     break_z_symmetry: bool = False
+    z_symmetry_method: str = "relative"  # "relative" or "cartesian"
 
     class Config:
         """Configure model settings behavior."""
@@ -65,6 +66,7 @@ class eComformerConfig(BaseSettings):
     angle_lattice: bool = False
     classification: bool = False
     break_z_symmetry: bool = False
+    z_symmetry_method: str = "relative"  # "relative" or "cartesian"
 
     class Config:
         """Configure model settings behavior."""
@@ -91,6 +93,7 @@ class eComformer(nn.Module): # eComFormer
         self.classification = config.classification
         self.use_angle = config.use_angle
         self.break_z_symmetry = config.break_z_symmetry
+        self.z_symmetry_method = config.z_symmetry_method
         self.atom_embedding = nn.Linear(
             config.atom_input_features, config.node_features
         )
@@ -146,19 +149,28 @@ class eComformer(nn.Module): # eComFormer
         
         # Early z-symmetry breaking: inject surface information before message passing
         if self.break_z_symmetry and hasattr(data, 'z_coords') and data.z_coords is not None:
-            # Convert raw z-coordinates to surface-relative coordinates (frame-invariant)
             raw_z = data.z_coords.squeeze(1)  # Remove extra dimension
-            slab_center = torch.mean(raw_z)  # Center of slab in z-direction
-            relative_z = raw_z - slab_center  # Relative to slab center
-            z_spread = torch.std(raw_z)  # Characteristic slab thickness
             
-            # Avoid division by zero for perfectly flat structures
-            if z_spread > 1e-6:
-                normalized_z = relative_z / z_spread  # Normalized by thickness
+            if self.z_symmetry_method == "relative":
+                # Original approach: Convert raw z-coordinates to surface-relative coordinates (frame-invariant)
+                slab_center = torch.mean(raw_z)  # Center of slab in z-direction
+                relative_z = raw_z - slab_center  # Relative to slab center
+                z_spread = torch.std(raw_z)  # Characteristic slab thickness
+                
+                # Avoid division by zero for perfectly flat structures
+                if z_spread > 1e-6:
+                    processed_z = relative_z / z_spread  # Normalized by thickness
+                else:
+                    processed_z = relative_z  # Keep relative coordinates if spread is tiny
+                    
+            elif self.z_symmetry_method == "cartesian":
+                # New approach: Use raw cartesian z-coordinates directly
+                # Scale by a reasonable factor to keep values in a manageable range
+                processed_z = raw_z / 10.0  # Scale down from Angstroms to keep values ~O(1)
             else:
-                normalized_z = relative_z  # Keep relative coordinates if spread is tiny
+                raise ValueError(f"Unknown z_symmetry_method: {self.z_symmetry_method}")
             
-            z_features = self.z_embedding(normalized_z.unsqueeze(1))
+            z_features = self.z_embedding(processed_z.unsqueeze(1))
             node_features = node_features + z_features
             
         n_nodes = node_features.shape[0]
@@ -195,6 +207,7 @@ class iComformer(nn.Module): # iComFormer
         self.classification = config.classification
         self.use_angle = config.use_angle
         self.break_z_symmetry = config.break_z_symmetry
+        self.z_symmetry_method = config.z_symmetry_method
         self.atom_embedding = nn.Linear(
             config.atom_input_features, config.node_features
         )
@@ -260,19 +273,28 @@ class iComformer(nn.Module): # iComFormer
         
         # Early z-symmetry breaking: inject surface information before message passing
         if self.break_z_symmetry and hasattr(data, 'z_coords') and data.z_coords is not None:
-            # Convert raw z-coordinates to surface-relative coordinates (frame-invariant)
             raw_z = data.z_coords.squeeze(1)  # Remove extra dimension
-            slab_center = torch.mean(raw_z)  # Center of slab in z-direction
-            relative_z = raw_z - slab_center  # Relative to slab center
-            z_spread = torch.std(raw_z)  # Characteristic slab thickness
             
-            # Avoid division by zero for perfectly flat structures
-            if z_spread > 1e-6:
-                normalized_z = relative_z / z_spread  # Normalized by thickness
+            if self.z_symmetry_method == "relative":
+                # Original approach: Convert raw z-coordinates to surface-relative coordinates (frame-invariant)
+                slab_center = torch.mean(raw_z)  # Center of slab in z-direction
+                relative_z = raw_z - slab_center  # Relative to slab center
+                z_spread = torch.std(raw_z)  # Characteristic slab thickness
+                
+                # Avoid division by zero for perfectly flat structures
+                if z_spread > 1e-6:
+                    processed_z = relative_z / z_spread  # Normalized by thickness
+                else:
+                    processed_z = relative_z  # Keep relative coordinates if spread is tiny
+                    
+            elif self.z_symmetry_method == "cartesian":
+                # New approach: Use raw cartesian z-coordinates directly
+                # Scale by a reasonable factor to keep values in a manageable range
+                processed_z = raw_z / 10.0  # Scale down from Angstroms to keep values ~O(1)
             else:
-                normalized_z = relative_z  # Keep relative coordinates if spread is tiny
+                raise ValueError(f"Unknown z_symmetry_method: {self.z_symmetry_method}")
             
-            z_features = self.z_embedding(normalized_z.unsqueeze(1))
+            z_features = self.z_embedding(processed_z.unsqueeze(1))
             node_features = node_features + z_features
             
         edge_feat = -0.75 / torch.norm(data.edge_attr, dim=1) # [num_edges]
