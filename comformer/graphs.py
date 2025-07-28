@@ -100,14 +100,18 @@ class PygStructureDataset(torch.utils.data.Dataset):
             torch.get_default_dtype()
         )
         print("mean %f std %f"%(self.labels.mean(), self.labels.std()))
-        if mean_train == None:
-            mean = self.labels.mean()
-            std = self.labels.std()
-            self.labels = (self.labels - mean) / std
-            print("normalize using training mean but shall not be used here %f and std %f" % (mean, std))
-        else:
-            self.labels = (self.labels - mean_train) / std_train
-            print("normalize using training mean %f and std %f" % (mean_train, std_train))
+        # SCALING DISABLED: To re-enable normalization, uncomment below:
+        # if mean_train == None:
+        #     mean = self.labels.mean()
+        #     std = self.labels.std()
+        #     self.labels = (self.labels - mean) / std
+        #     print("normalize using training mean but shall not be used here %f and std %f" % (mean, std))
+        # else:
+        #     self.labels = (self.labels - mean_train) / std_train
+        #     print("normalize using training mean %f and std %f" % (mean_train, std_train))
+        
+        print("Normalization disabled - using raw target values")
+        print("Target stats: mean %f std %f" % (self.labels.mean(), self.labels.std()))
 
         self.transform = transform
 

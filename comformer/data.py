@@ -328,8 +328,12 @@ def get_pyg_dataset(
         use_angle=use_angle,
     )
     if mean_train == None:
-        mean_train = np.mean(vals)
-        std_train = np.std(vals)
+        # SCALING DISABLED: To re-enable normalization, uncomment below:
+        # mean_train = np.mean(vals)
+        # std_train = np.std(vals)
+        
+        mean_train = 0.0  # Hardcoded to disable normalization
+        std_train = 1.0   # Hardcoded to disable normalization
         data = PygStructureDataset(
             df,
             graphs,

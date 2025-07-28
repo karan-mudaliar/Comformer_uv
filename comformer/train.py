@@ -342,7 +342,9 @@ def train_main(
     }
     criterion = criteria[config.criterion]
     # set up training engine and evaluators
-    metrics = {"loss": Loss(criterion), "mae": MeanAbsoluteError() * std_train, "neg_mae": -1.0 * MeanAbsoluteError() * std_train}
+    # SCALING DISABLED: To re-enable validation metric scaling, use:
+    # metrics = {"loss": Loss(criterion), "mae": MeanAbsoluteError() * std_train, "neg_mae": -1.0 * MeanAbsoluteError() * std_train}
+    metrics = {"loss": Loss(criterion), "mae": MeanAbsoluteError(), "neg_mae": -1.0 * MeanAbsoluteError()}
     trainer = create_supervised_trainer(
         net,
         optimizer,
@@ -390,8 +392,11 @@ def train_main(
         t2 = time.time()
         f.close()
         from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error
-        targets = np.array(targets) * std_train
-        predictions = np.array(predictions) * std_train
+        # SCALING DISABLED: To re-enable denormalization, use:
+        # targets = np.array(targets) * std_train + mean_train
+        # predictions = np.array(predictions) * std_train + mean_train
+        targets = np.array(targets)  # No scaling needed
+        predictions = np.array(predictions)  # No scaling needed
         print("Test MAE:", mean_absolute_error(targets, predictions))
         print("Test MAPE:", mean_absolute_percentage_error(targets, predictions))
         print("Total test time:", t2-t1)
@@ -616,8 +621,11 @@ def train_main(
         # Calculate MAE and MAPE for each output dimension
         n_outputs = all_targets.shape[1]
         for i in range(n_outputs):
-            targets_i = all_targets[:, i] * std_train
-            predictions_i = all_predictions[:, i] * std_train
+            # SCALING DISABLED: To re-enable denormalization, use:
+            # targets_i = all_targets[:, i] * std_train + mean_train
+            # predictions_i = all_predictions[:, i] * std_train + mean_train
+            targets_i = all_targets[:, i]  # No scaling needed
+            predictions_i = all_predictions[:, i]  # No scaling needed
             mae_i = mean_absolute_error(targets_i, predictions_i)
             mape_i = mean_absolute_percentage_error(targets_i, predictions_i)
             if n_outputs == 2 and i == 0:
@@ -631,8 +639,11 @@ def train_main(
                 print(f"Test MAPE (output {i}): {mape_i:.4f}")
 
         # Calculate overall MAE and MAPE
-        overall_mae = mean_absolute_error(all_targets.flatten() * std_train, all_predictions.flatten() * std_train)
-        overall_mape = mean_absolute_percentage_error(all_targets.flatten() * std_train, all_predictions.flatten() * std_train)
+        # SCALING DISABLED: To re-enable denormalization, use:
+        # overall_mae = mean_absolute_error(all_targets.flatten() * std_train + mean_train, all_predictions.flatten() * std_train + mean_train)
+        # overall_mape = mean_absolute_percentage_error(all_targets.flatten() * std_train + mean_train, all_predictions.flatten() * std_train + mean_train)
+        overall_mae = mean_absolute_error(all_targets.flatten(), all_predictions.flatten())
+        overall_mape = mean_absolute_percentage_error(all_targets.flatten(), all_predictions.flatten())
         print(f"Test MAE (overall): {overall_mae:.4f}")
         print(f"Test MAPE (overall): {overall_mape:.4f}")
     if (
@@ -679,8 +690,11 @@ def train_main(
         )
         
         from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error
-        targets = np.array(targets) * std_train
-        predictions = np.array(predictions) * std_train
+        # SCALING DISABLED: To re-enable denormalization, use:
+        # targets = np.array(targets) * std_train + mean_train
+        # predictions = np.array(predictions) * std_train + mean_train
+        targets = np.array(targets)  # No scaling needed
+        predictions = np.array(predictions)  # No scaling needed
         print("Test MAE:", mean_absolute_error(targets, predictions))
         print("Test MAPE:", mean_absolute_percentage_error(targets, predictions))
         

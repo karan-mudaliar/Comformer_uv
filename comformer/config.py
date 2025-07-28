@@ -187,6 +187,7 @@ class TrainingConfig(BaseSettings):
     use_lattice: bool = False
     use_angle: bool = False
     break_z_symmetry: bool = False
+    z_symmetry_method: str = "relative"  # "relative" or "cartesian"
 
     # model configuration
     model: Union[
@@ -199,5 +200,9 @@ class TrainingConfig(BaseSettings):
         values["model"].atom_input_features = FEATURESET_SIZE[
             values["atom_features"]
         ]
+        
+        # Validate z_symmetry_method
+        if values.get("z_symmetry_method") not in ["relative", "cartesian"]:
+            raise ValueError("z_symmetry_method must be either 'relative' or 'cartesian'")
 
         return values

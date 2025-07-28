@@ -8,13 +8,13 @@ sys.path.append(comformer_dir)
 from comformer.train_props import train_prop_model 
 
 # Create output directory
-output_dir = "output/eComformer_cleavage_energy_space_group_splits_no_zsym"
+output_dir = "output/iComformer_cleavage_energy_structureid_splits_zsym"
 os.makedirs(output_dir, exist_ok=True)
 
 train_prop_model(
     dataset="D2R2_surface_data",
     prop="cleavage_energy",
-    name="eComformer",
+    name="iComformer",
     pyg_input=True,
     n_epochs=150,
     max_neighbors=25,
@@ -22,9 +22,9 @@ train_prop_model(
     batch_size=32,
     use_lattice=True,
     use_angle=True,
-    break_z_symmetry=False,  # eComformer baseline without symmetry breaking
+    break_z_symmetry=True,  # iComformer WITH symmetry breaking
     save_dataloader=False,
     output_dir=output_dir,
     output_features=1,    # Single output for cleavage energy
-    data_path=os.environ.get("ROBINLAB_DATA_PATH", "/home/mudaliar.k/data") + "/combined_space_group.csv"
+    data_path=os.environ.get("ROBINLAB_DATA_PATH", "/home/mudaliar.k/data") + "/combined_structureid.csv"
 )
